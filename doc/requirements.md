@@ -18,7 +18,20 @@ Target: embedded systems with no dependencies.
 - Transitions with `[guard] / action`  
 - Entry/exit actions  
 - Nested states allowed, but entry/exit execution is flattened  
-- No history, timeouts, or junctions in v1  
+- No history, timeouts, or junctions in v1 
+
+## PlantUML Subset (v1) — Additions
+- Initial transitions may target **deep descendants** (e.g., `[*] --> s2.s21.s211`) at any scope, including root.
+- Initial transitions may have **actions** (e.g., `[*] --> s2 : / setFooFalse`).
+- Empty `entry`/`exit` declarations are valid (call `on_entry`/`on_exit` with **no** `ActionId`).
+- Empty internal actions are valid (e.g., `s1 : I /` → no `ActionId`).
+- Internal/self transitions: both `state : E ...` and `state -> state : E ...` are supported.
+- Final transitions allowed: `state --> [*] : EVENT` (machine becomes terminal; later `dispatch` are ignored).
+
+## Semantics — Clarifications
+- **Normalization of deep initials:** generator computes the leaf target and emits a precomputed `enter` chain (root → … → leaf). If the target is a composite without a leaf, descend via its own initial(s).
+- **Initial action timing:** initial transition action runs **after** parent entry of the source scope and **before** entering the target chain.
+- **Specificity:** when multiple transitions match, the more specific (deeper state) wins.
 
 ## Generated C++ Design
 
