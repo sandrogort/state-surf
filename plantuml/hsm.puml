@@ -1,0 +1,57 @@
+@startuml
+
+state s {
+    state s1 {
+        state s11
+        [*] --> s11
+    }
+    state s2 {
+        state s21 {
+            state s211
+            [*] --> s211
+        }
+        [*] --> s211
+    }
+    [*] --> s11
+}
+[*] --> s2 : / setFooFalse
+
+s : entry
+s : exit
+s : I [isFooTrue] / setFooFalse
+s --> [*] : TERMINATE
+s --> s11 : E
+
+s1 : entry
+s1 : exit
+s1 : I /
+s1 --> s : D [isFooFalse] / setFooTrue
+s1 -> s1 : A
+s1 --> s11 : B
+s1 --> s2 : C
+s1 --> s211 : F
+
+s11 : entry
+s11 : exit
+s11 --> s211 : G
+s11 --> s : H
+s11 --> s1 : D [isFooTrue] / setFooFalse
+
+s2 : entry
+s2 : exit
+s2 : I [isFooFalse] / setFooTrue
+s2 --> s1 : C
+s2 --> s11 : F
+
+s21 : entry
+s21 : exit
+s21 --> s11 : G
+s21 -> s21 : A
+s21 --> s211 : B
+
+s211 : entry
+s211 : exit
+s211 --> s21 : D
+s211 --> s : H
+
+@enduml
