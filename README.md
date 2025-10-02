@@ -16,7 +16,7 @@ StateSurf turns a PlantUML hierarchical state machine model into a single, flat,
 - `doc/requirements.md` — vision and full v1 feature/semantics reference
 
 ## Requirements
-- Python 3.8+ (stdlib only)
+- Python 3.8+ (stdlib only) and `jinja2`
 - PlantUML for authoring state machine diagrams (no runtime dependency)
 - A C++11 toolchain for consuming the generated header
 
