@@ -37,7 +37,7 @@ class Model:
             n = self.nodes[name]
             if n.parent is None:
                 n.parent = parent
-            if name not in parent.children:
+            if n.parent is parent:
                 parent.children[name] = n
             return n
         n = Node(name, parent)
@@ -86,8 +86,8 @@ def parse_puml(path: Path) -> Model:
     re_close = re.compile(r'^\s*\}\s*$')
     re_initial = re.compile(r'^\s*\[\*\]\s*[-]{1,2}>\s*([A-Za-z_]\w*)\s*(?::\s*(?:([A-Za-z_]\w*)\s*)?(?:\[(.*?)\])?\s*(?:/\s*([A-Za-z_]\w*))?)?\s*$')
     re_entryexit = re.compile(r'^\s*([A-Za-z_]\w*)\s*:\s*(entry|exit)(?:\s*/\s*([A-Za-z_]\w*))?\s*$')
-    re_transition = re.compile(r'^\s*([A-Za-z_]\w*)\s*[-]{1,2}>\s*([A-Za-z_\*\]\[]\w*|\[\*\])\s*:\s*([A-Za-z_]\w*)?(?:\s*\[([^\]]+)\])?(?:\s*/\s*([A-Za-z_]\w*))?\s*$')
-    re_internal = re.compile(r'^\s*([A-Za-z_]\w*)\s*:\s*([A-Za-z_]\w*)?(?:\s*\[([^\]]+)\])?(?:\s*/\s*([A-Za-z_]\w*))?\s*$')
+    re_transition = re.compile(r'^\s*([A-Za-z_]\w*)\s*[-]{1,2}>\s*([A-Za-z_\*\]\[]\w*|\[\*\])\s*:\s*([A-Za-z_]\w*)?(?:\s*\[([^\]]+)\])?(?:\s*/\s*([A-Za-z_]\w*)?)?\s*$')
+    re_internal = re.compile(r'^\s*([A-Za-z_]\w*)\s*:\s*([A-Za-z_]\w*)?(?:\s*\[([^\]]+)\])?(?:\s*/\s*([A-Za-z_]\w*)?)?\s*$')
 
     for raw in text.splitlines():
         line = raw.strip()
@@ -140,6 +140,8 @@ def parse_puml(path: Path) -> Model:
         mo = re_transition.match(line)
         if mo:
             src, dst, ev, gd, ac = mo.groups()
+            if ac == "":
+                ac = None
             m.ensure_node(src, stack[-1])
             dst_name = None if dst=="[*]" else dst
             if dst_name:
@@ -157,6 +159,8 @@ def parse_puml(path: Path) -> Model:
             st, ev, gd, ac = mo.groups()
             if ev in ('entry','exit'):
                 continue
+            if ac == "":
+                ac = None
             m.ensure_node(st, stack[-1])
             if ev: m.events.add(ev)
             if gd: m.guards.add(gd)
@@ -306,11 +310,24 @@ def gen_header(m, machine_name: str) -> str:
         while n and n.name!="__root__":
             path.append(n)
             n = n.parent
-        for node in reversed(path):
+        path_nodes = list(reversed(path))
+        first_child = {}
+        for node in path_nodes:
+            parent = node.parent
+            if parent and parent.name not in first_child:
+                first_child[parent.name] = node.name
+        for node in path_nodes:
+            parent = node.parent
+            if parent:
+                initial_action = parent.initial_action
+                if initial_action and first_child.get(parent.name) == node.name:
+                    aid = sanitize_id("{}_Initial_{}".format(parent.name, initial_action))
+                    action_state = node.name if parent.name == "__root__" else parent.name
+                    out.append("    impl_.action(State::{}, Event{{}}, ActionId::{});".format(sanitize_id(action_state), sanitize_id(aid)))
             out.append("    impl_.on_entry(State::{});".format(sanitize_id(node.name)))
             for act in node.entry_actions:
                 aid = "{}_entry_{}".format(node.name, act)
-                out.append("    impl_.action(State::{}, Event({}), ActionId::{});".format(sanitize_id(node.name), "0", sanitize_id(aid)))
+                out.append("    impl_.action(State::{}, Event{{}}, ActionId::{});".format(sanitize_id(node.name), sanitize_id(aid)))
         out.append("    s_ = State::{};".format(sanitize_id(leaf)))
     out.append("  }")
     out.append("  State state() const { return s_; }")
@@ -331,6 +348,19 @@ def gen_header(m, machine_name: str) -> str:
             out.append("          case Event::{}: {{".format(sanitize_id(ev)))
             any_rule=False
             for t in lst:
+                if t.internal:
+                    cond = ""
+                    if t.guard:
+                        gid = "{}_{}_{}".format(t.src, t.event or "Initial", t.guard)
+                        cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(sanitize_id(gid))
+                    out.append("            {}{{".format(cond) if cond else "            {")
+                    out.append("              on_transition(s_, s_, e);")
+                    if t.action:
+                        aid = "{}_{}_{}".format(t.src, t.event or "Initial", t.action)
+                        out.append("              impl_.action(s_, e, ActionId::{});".format(sanitize_id(aid)))
+                    out.append("              return;")
+                    out.append("            }")
+                    continue
                 # destination
                 if t.dst is None:
                     # final
@@ -346,21 +376,45 @@ def gen_header(m, machine_name: str) -> str:
                     if t.action:
                         aid = "{}_{}_{}".format(t.src, t.event or "Initial", t.action)
                         out.append("              impl_.action(s_, e, ActionId::{});".format(sanitize_id(aid)))
-                    out.append("              terminated_ = True;")
+                    out.append("              terminated_ = true;")
                     out.append("              return;")
                     out.append("            }")
                     any_rule=True
                     continue
                 dest_leaf = m.initial_leaf(t.dst) if m.is_composite(t.dst) else t.dst
-                lca = m.lca(s, dest_leaf)
-                # exit chain
                 exit_nodes=[]
                 n = m.nodes[s]
-                while n and n.name != lca.name:
+                source_node = m.nodes.get(t.src)
+                while n and (source_node is None or n.name != source_node.name):
                     exit_nodes.append(n.name)
                     n = n.parent
-                # entry chain
-                entry_nodes = entry_chain_nodes(lca.name, dest_leaf)
+                dest_within_source = False
+                if t.src in m.nodes:
+                    dn = m.nodes[dest_leaf]
+                    while dn:
+                        if dn.name == t.src:
+                            dest_within_source = True
+                            break
+                        dn = dn.parent
+                if not dest_within_source and source_node is not None:
+                    exit_nodes.append(t.src)
+                    n = source_node.parent
+                else:
+                    n = source_node.parent if source_node is not None else n
+                lca_src_dest = m.lca(t.src, dest_leaf) if t.src in m.nodes else None
+                if not dest_within_source:
+                    while n and (lca_src_dest is None or n.name != lca_src_dest.name):
+                        exit_nodes.append(n.name)
+                        n = n.parent
+                exit_common = False
+                if (not t.internal) and dest_within_source and t.src == t.dst:
+                    exit_common = True
+                if dest_within_source and source_node is not None:
+                    entry_anchor_name = t.src
+                else:
+                    lca_node = lca_src_dest if lca_src_dest is not None else (source_node if source_node is not None else None)
+                    entry_anchor_name = lca_node.name if lca_node is not None else "__root__"
+                entry_nodes = entry_chain_nodes(entry_anchor_name, dest_leaf)
                 cond = ""
                 if t.guard:
                     gid = "{}_{}_{}".format(t.src, t.event or "Initial", t.guard)
@@ -379,6 +433,12 @@ def gen_header(m, machine_name: str) -> str:
                     aid = "{}_{}_{}".format(t.src, t.event or "Initial", t.action)
                     out.append("              impl_.action(s_, e, ActionId::{});".format(sanitize_id(aid)))
                 # entry nodes
+                if exit_common and source_node is not None:
+                    node = source_node
+                    out.append("              impl_.on_entry(State::{});".format(sanitize_id(node.name)))
+                    for act in node.entry_actions:
+                        aid = "{}_entry_{}".format(node.name, act)
+                        out.append("              impl_.action(State::{}, e, ActionId::{});".format(sanitize_id(node.name), sanitize_id(aid)))
                 for en in entry_nodes:
                     node = m.nodes[en]
                     out.append("              impl_.on_entry(State::{});".format(sanitize_id(node.name)))
@@ -389,8 +449,7 @@ def gen_header(m, machine_name: str) -> str:
                 out.append("              return;")
                 out.append("            }")
                 any_rule=True
-            if not any_rule:
-                out.append("            return;")
+            out.append("            return;")
             out.append("          }")
         out.append("          default: return;")
         out.append("        }")

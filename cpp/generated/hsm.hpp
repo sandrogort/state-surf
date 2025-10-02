@@ -7,18 +7,6 @@ enum class State {
   s11,
   s2,
   s21,
-  s211,
-  s211,
-  s11,
-  s2,
-  s21,
-  s211,
-  s211,
-  s1,
-  s11,
-  s11,
-  s21,
-  s211,
   s211
 };
 enum class Event {
@@ -60,6 +48,7 @@ public:
   explicit StateSurfMachine(IHooks& impl) : impl_(impl) { reset(); }
   void reset() {
     terminated_ = false;
+    impl_.action(State::s, Event{}, ActionId::__root___Initial_setFooFalse);
     impl_.on_entry(State::s);
     impl_.on_entry(State::s2);
     impl_.on_entry(State::s21);
@@ -76,21 +65,20 @@ public:
         switch (e) {
           case Event::I: {
             if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
+              on_transition(s_, s_, e);
               impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::TERMINATE: {
             {
               on_transition(s_, s_, e);
               impl_.on_exit(State::s);
-              terminated_ = True;
+              terminated_ = true;
               return;
             }
+            return;
           }
           case Event::E: {
             {
@@ -100,12 +88,25 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           default: return;
         }
       }
       case State::s1: {
         switch (e) {
+          case Event::I: {
+            {
+              on_transition(s_, s_, e);
+              return;
+            }
+            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
+              on_transition(s_, s_, e);
+              impl_.action(s_, e, ActionId::s_I_setFooFalse);
+              return;
+            }
+            return;
+          }
           case Event::D: {
             if (impl_.guard(s_, e, GuardId::s1_D_isFooFalse)) {
               on_transition(s_, State::s11, e);
@@ -114,14 +115,17 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::A: {
             {
               on_transition(s_, State::s11, e);
+              impl_.on_entry(State::s1);
               impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::B: {
             {
@@ -130,6 +134,7 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::C: {
             {
@@ -141,6 +146,7 @@ public:
               s_ = State::s211;
               return;
             }
+            return;
           }
           case Event::F: {
             {
@@ -152,32 +158,28 @@ public:
               s_ = State::s211;
               return;
             }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
+            return;
           }
           case Event::TERMINATE: {
             {
               on_transition(s_, s_, e);
               impl_.on_exit(State::s1);
               impl_.on_exit(State::s);
-              terminated_ = True;
+              terminated_ = true;
               return;
             }
+            return;
           }
           case Event::E: {
             {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s1);
+              impl_.on_entry(State::s1);
               impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
             }
+            return;
           }
           default: return;
         }
@@ -195,6 +197,7 @@ public:
               s_ = State::s211;
               return;
             }
+            return;
           }
           case Event::H: {
             {
@@ -202,6 +205,7 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::D: {
             if (impl_.guard(s_, e, GuardId::s11_D_isFooTrue)) {
@@ -212,24 +216,46 @@ public:
             }
             if (impl_.guard(s_, e, GuardId::s1_D_isFooFalse)) {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s11);
               impl_.action(s_, e, ActionId::s1_D_setFooTrue);
+              impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
             }
+            return;
+          }
+          case Event::I: {
+            {
+              on_transition(s_, s_, e);
+              return;
+            }
+            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
+              on_transition(s_, s_, e);
+              impl_.action(s_, e, ActionId::s_I_setFooFalse);
+              return;
+            }
+            return;
           }
           case Event::A: {
             {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s11);
+              impl_.on_entry(State::s1);
+              impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::B: {
             {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s11);
+              impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::C: {
             {
@@ -242,6 +268,7 @@ public:
               s_ = State::s211;
               return;
             }
+            return;
           }
           case Event::F: {
             {
@@ -254,14 +281,7 @@ public:
               s_ = State::s211;
               return;
             }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              s_ = State::s11;
-              return;
-            }
+            return;
           }
           case Event::TERMINATE: {
             {
@@ -269,16 +289,22 @@ public:
               impl_.on_exit(State::s11);
               impl_.on_exit(State::s1);
               impl_.on_exit(State::s);
-              terminated_ = True;
+              terminated_ = true;
               return;
             }
+            return;
           }
           case Event::E: {
             {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s11);
+              impl_.on_exit(State::s1);
+              impl_.on_entry(State::s1);
+              impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
             }
+            return;
           }
           default: return;
         }
@@ -287,22 +313,16 @@ public:
         switch (e) {
           case Event::I: {
             if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
+              on_transition(s_, s_, e);
               impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
               return;
             }
             if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s2);
+              on_transition(s_, s_, e);
               impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::C: {
             {
@@ -313,6 +333,7 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::F: {
             {
@@ -323,15 +344,17 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::TERMINATE: {
             {
               on_transition(s_, s_, e);
               impl_.on_exit(State::s2);
               impl_.on_exit(State::s);
-              terminated_ = True;
+              terminated_ = true;
               return;
             }
+            return;
           }
           case Event::E: {
             {
@@ -342,6 +365,7 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           default: return;
         }
@@ -358,14 +382,17 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::A: {
             {
               on_transition(s_, State::s211, e);
+              impl_.on_entry(State::s21);
               impl_.on_entry(State::s211);
               s_ = State::s211;
               return;
             }
+            return;
           }
           case Event::B: {
             {
@@ -374,25 +401,20 @@ public:
               s_ = State::s211;
               return;
             }
+            return;
           }
           case Event::I: {
             if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
+              on_transition(s_, s_, e);
               impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
               return;
             }
             if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
+              on_transition(s_, s_, e);
               impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::C: {
             {
@@ -404,6 +426,7 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::F: {
             {
@@ -415,6 +438,7 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::TERMINATE: {
             {
@@ -422,9 +446,10 @@ public:
               impl_.on_exit(State::s21);
               impl_.on_exit(State::s2);
               impl_.on_exit(State::s);
-              terminated_ = True;
+              terminated_ = true;
               return;
             }
+            return;
           }
           case Event::E: {
             {
@@ -436,6 +461,7 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           default: return;
         }
@@ -448,6 +474,7 @@ public:
               s_ = State::s211;
               return;
             }
+            return;
           }
           case Event::H: {
             {
@@ -460,6 +487,7 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::G: {
             {
@@ -472,39 +500,41 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::A: {
             {
               on_transition(s_, State::s211, e);
+              impl_.on_exit(State::s211);
+              impl_.on_entry(State::s21);
+              impl_.on_entry(State::s211);
               s_ = State::s211;
               return;
             }
+            return;
           }
           case Event::B: {
             {
               on_transition(s_, State::s211, e);
+              impl_.on_exit(State::s211);
+              impl_.on_entry(State::s211);
               s_ = State::s211;
               return;
             }
+            return;
           }
           case Event::I: {
             if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
+              on_transition(s_, s_, e);
               impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              s_ = State::s211;
               return;
             }
             if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
+              on_transition(s_, s_, e);
               impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::C: {
             {
@@ -517,6 +547,7 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::F: {
             {
@@ -529,6 +560,7 @@ public:
               s_ = State::s11;
               return;
             }
+            return;
           }
           case Event::TERMINATE: {
             {
@@ -537,9 +569,10 @@ public:
               impl_.on_exit(State::s21);
               impl_.on_exit(State::s2);
               impl_.on_exit(State::s);
-              terminated_ = True;
+              terminated_ = true;
               return;
             }
+            return;
           }
           case Event::E: {
             {
@@ -552,1218 +585,7 @@ public:
               s_ = State::s11;
               return;
             }
-          }
-          default: return;
-        }
-      }
-      case State::s211: {
-        switch (e) {
-          case Event::D: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::H: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::G: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              s_ = State::s211;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s11: {
-        switch (e) {
-          case Event::G: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::H: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::D: {
-            if (impl_.guard(s_, e, GuardId::s11_D_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s11_D_setFooFalse);
-              s_ = State::s11;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s1_D_isFooFalse)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s1_D_setFooTrue);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s2: {
-        switch (e) {
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s2);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s2);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s21: {
-        switch (e) {
-          case Event::G: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s211: {
-        switch (e) {
-          case Event::D: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::H: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::G: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              s_ = State::s211;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s211: {
-        switch (e) {
-          case Event::D: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::H: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::G: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              s_ = State::s211;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s1: {
-        switch (e) {
-          case Event::D: {
-            if (impl_.guard(s_, e, GuardId::s1_D_isFooFalse)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s1_D_setFooTrue);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s1);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s11: {
-        switch (e) {
-          case Event::G: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::H: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::D: {
-            if (impl_.guard(s_, e, GuardId::s11_D_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s11_D_setFooFalse);
-              s_ = State::s11;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s1_D_isFooFalse)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s1_D_setFooTrue);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s11: {
-        switch (e) {
-          case Event::G: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::H: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::D: {
-            if (impl_.guard(s_, e, GuardId::s11_D_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s11_D_setFooFalse);
-              s_ = State::s11;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s1_D_isFooFalse)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s1_D_setFooTrue);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_entry(State::s2);
-              impl_.on_entry(State::s21);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s11);
-              impl_.on_exit(State::s1);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s21: {
-        switch (e) {
-          case Event::G: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s211, e);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              impl_.on_entry(State::s211);
-              s_ = State::s211;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s211: {
-        switch (e) {
-          case Event::D: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::H: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::G: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              s_ = State::s211;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          default: return;
-        }
-      }
-      case State::s211: {
-        switch (e) {
-          case Event::D: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::H: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::G: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::A: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::B: {
-            {
-              on_transition(s_, State::s211, e);
-              s_ = State::s211;
-              return;
-            }
-          }
-          case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
-              on_transition(s_, State::s211, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
-              s_ = State::s211;
-              return;
-            }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::C: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::F: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
-          }
-          case Event::TERMINATE: {
-            {
-              on_transition(s_, s_, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_exit(State::s);
-              terminated_ = True;
-              return;
-            }
-          }
-          case Event::E: {
-            {
-              on_transition(s_, State::s11, e);
-              impl_.on_exit(State::s211);
-              impl_.on_exit(State::s21);
-              impl_.on_exit(State::s2);
-              impl_.on_entry(State::s1);
-              impl_.on_entry(State::s11);
-              s_ = State::s11;
-              return;
-            }
+            return;
           }
           default: return;
         }
