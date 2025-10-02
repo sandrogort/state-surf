@@ -6,7 +6,7 @@ StateSurf turns a PlantUML hierarchical state machine model into a single, flat,
 - Generated-only workflow: edit PlantUML, regenerate `*.hpp`, never touch emitted code by hand
 - Embedded-first runtime: header-only, C++11, no dynamic allocations, exceptions, or RTTI
 - Flattened execution: entry/exit chains and transition specificity resolved ahead of time
-- Deterministic IDs: guard/action identifiers stay stable per model, simplifying hook implementations
+- Deterministic IDs: guard/action identifiers are shared by name across the model, so reused logic hits the same hook entry point
 - Optional tracing: override `statesurf::on_event` / `on_transition` for lightweight logging
 
 ## Repository Layout
@@ -36,11 +36,11 @@ StateSurf turns a PlantUML hierarchical state machine model into a single, flat,
      void on_entry(statesurf::State s) override { /* GPIOs, logs, ... */ }
      void on_exit(statesurf::State s) override { /* cleanup */ }
      bool guard(statesurf::State s, statesurf::Event e, statesurf::GuardId g) override {
-       /* return decision */
-     }
+       /* `g` is the shared name (e.g., GuardId::isFooTrue) */
+       }
      void action(statesurf::State s, statesurf::Event e, statesurf::ActionId a) override {
-       /* side effects */
-     }
+       /* `a` is the shared name (e.g., ActionId::setFooFalse) */
+       }
    };
    ```
 5. **Run the machine**:
@@ -56,6 +56,7 @@ The machine caches its current `State`, automatically executes entry/exit/action
 - Initial transitions may target deep descendants and may carry actions
 - Internal/self transitions are supported via either `state : Event` or `state -> state : Event`
 - Empty entry/exit/action bodies are allowed and will still call into hooks without an `ActionId`
+- Guard/action enums collapse identical names, so reuse `isDoorClosed` or `setFooTrue` freely across states
 - Final transitions (`state --> [*]`) terminate the machine; use `terminated()` to query
 
 For the full set of guarantees, limitations, and v1 roadmap, read `doc/requirements.md`.

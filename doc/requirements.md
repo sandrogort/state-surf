@@ -88,7 +88,7 @@ User can override by providing definitions.
 ## Implementation Details
 - Header-only: one `.hpp` per machine (v1)  
 - Text-templating architecture, so adding new languages later is easy  
-- Guards/actions/entries/exits generate unique IDs → enforced completeness  
+- Guards/actions/entries/exits generate IDs by name → repeated labels reuse the same enum value  
 - Generated code prioritizes readability; compiler does the optimization  
 
 ## Out of Scope (v1)

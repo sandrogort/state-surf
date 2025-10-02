@@ -213,32 +213,49 @@ def gen_header(m, machine_name: str) -> str:
     states = [s for s in topo_states(m) if s!="__root__"]
     events = sorted(m.events, key=lambda x: x)
 
-    guard_ids = []
-    action_ids = []
+    guard_ids: List[str] = []
+    guard_map: Dict[str, str] = {}
+    action_ids: List[str] = []
+    action_map: Dict[str, str] = {}
+
+    def normalized_id(name: str) -> str:
+        sid = sanitize_id(name)
+        if not sid:
+            sid = "_"
+        if sid[0].isdigit():
+            sid = "_" + sid
+        return sid
+
+    def register_guard(name: str) -> str:
+        gid = normalized_id(name)
+        if gid not in guard_ids:
+            guard_ids.append(gid)
+        guard_map[name] = gid
+        return gid
+
+    def register_action(name: str) -> str:
+        aid = normalized_id(name)
+        if aid not in action_ids:
+            action_ids.append(aid)
+        action_map[name] = aid
+        return aid
 
     for t in m.transitions:
         if t.guard:
-            gid = "{}_{}_{}".format(t.src, t.event or "Initial", t.guard)
-            gid = sanitize_id(gid)
-            if gid not in guard_ids: guard_ids.append(gid)
+            register_guard(t.guard)
         if t.action:
-            aid = "{}_{}_{}".format(t.src, t.event or "Initial", t.action)
-            aid = sanitize_id(aid)
-            if aid not in action_ids: action_ids.append(aid)
+            register_action(t.action)
 
     for st, node in m.nodes.items():
         if st=="__root__": continue
         for a in node.entry_actions:
-            aid = sanitize_id("{}_entry_{}".format(st, a))
-            if aid not in action_ids: action_ids.append(aid)
+            register_action(a)
         for a in node.exit_actions:
-            aid = sanitize_id("{}_exit_{}".format(st, a))
-            if aid not in action_ids: action_ids.append(aid)
-    # initial actions on scopes
+            register_action(a)
+
     def collect_initial_actions(n: Node):
         if n.initial_action:
-            aid = sanitize_id("{}_Initial_{}".format(n.name, n.initial_action))
-            if aid not in action_ids: action_ids.append(aid)
+            register_action(n.initial_action)
         for c in n.children.values():
             collect_initial_actions(c)
     collect_initial_actions(m.root)
@@ -257,8 +274,8 @@ def gen_header(m, machine_name: str) -> str:
     out.append("namespace statesurf {")
     out.append(enum("State", [sanitize_id(s) for s in states]))
     out.append(enum("Event", [sanitize_id(e) for e in events]))
-    out.append(enum("GuardId", [sanitize_id(g) for g in guard_ids]))
-    out.append(enum("ActionId", [sanitize_id(a) for a in action_ids]))
+    out.append(enum("GuardId", guard_ids))
+    out.append(enum("ActionId", action_ids))
     out.append("struct IHooks {")
     out.append("  virtual ~IHooks() {}")
     out.append("  virtual void on_entry(State) = 0;")
@@ -275,8 +292,8 @@ def gen_header(m, machine_name: str) -> str:
         n = m.nodes[sname]
         while n and n.name!="__root__":
             for act in n.exit_actions:
-                aid = "{}_exit_{}".format(n.name, act)
-                lines.append("impl_.action(State::{}, e, ActionId::{});".format(sanitize_id(n.name), sanitize_id(aid)))
+                aid = action_map[act]
+                lines.append("impl_.action(State::{}, e, ActionId::{});".format(sanitize_id(n.name), aid))
             lines.append("impl_.on_exit(State::{});".format(sanitize_id(n.name)))
             n = n.parent
         return lines
@@ -321,13 +338,13 @@ def gen_header(m, machine_name: str) -> str:
             if parent:
                 initial_action = parent.initial_action
                 if initial_action and first_child.get(parent.name) == node.name:
-                    aid = sanitize_id("{}_Initial_{}".format(parent.name, initial_action))
+                    aid = action_map[initial_action]
                     action_state = node.name if parent.name == "__root__" else parent.name
-                    out.append("    impl_.action(State::{}, Event{{}}, ActionId::{});".format(sanitize_id(action_state), sanitize_id(aid)))
+                    out.append("    impl_.action(State::{}, Event{{}}, ActionId::{});".format(sanitize_id(action_state), aid))
             out.append("    impl_.on_entry(State::{});".format(sanitize_id(node.name)))
             for act in node.entry_actions:
-                aid = "{}_entry_{}".format(node.name, act)
-                out.append("    impl_.action(State::{}, Event{{}}, ActionId::{});".format(sanitize_id(node.name), sanitize_id(aid)))
+                aid = action_map[act]
+                out.append("    impl_.action(State::{}, Event{{}}, ActionId::{});".format(sanitize_id(node.name), aid))
         out.append("    s_ = State::{};".format(sanitize_id(leaf)))
     out.append("  }")
     out.append("  State state() const { return s_; }")
@@ -351,13 +368,13 @@ def gen_header(m, machine_name: str) -> str:
                 if t.internal:
                     cond = ""
                     if t.guard:
-                        gid = "{}_{}_{}".format(t.src, t.event or "Initial", t.guard)
-                        cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(sanitize_id(gid))
+                        gid = guard_map[t.guard]
+                        cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(gid)
                     out.append("            {}{{".format(cond) if cond else "            {")
                     out.append("              on_transition(s_, s_, e);")
                     if t.action:
-                        aid = "{}_{}_{}".format(t.src, t.event or "Initial", t.action)
-                        out.append("              impl_.action(s_, e, ActionId::{});".format(sanitize_id(aid)))
+                        aid = action_map[t.action]
+                        out.append("              impl_.action(s_, e, ActionId::{});".format(aid))
                     out.append("              return;")
                     out.append("            }")
                     continue
@@ -366,16 +383,16 @@ def gen_header(m, machine_name: str) -> str:
                     # final
                     cond = ""
                     if t.guard:
-                        gid = "{}_{}_{}".format(t.src, t.event or "Initial", t.guard)
-                        cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(sanitize_id(gid))
+                        gid = guard_map[t.guard]
+                        cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(gid)
                     out.append("            {}{{".format(cond) if cond else "            {")
                     out.append("              on_transition(s_, s_, e);")
                     # exit all from current s
                     for ln in emit_exit_chain_for_state(s):
                         out.append("              " + ln)
                     if t.action:
-                        aid = "{}_{}_{}".format(t.src, t.event or "Initial", t.action)
-                        out.append("              impl_.action(s_, e, ActionId::{});".format(sanitize_id(aid)))
+                        aid = action_map[t.action]
+                        out.append("              impl_.action(s_, e, ActionId::{});".format(aid))
                     out.append("              terminated_ = true;")
                     out.append("              return;")
                     out.append("            }")
@@ -417,34 +434,34 @@ def gen_header(m, machine_name: str) -> str:
                 entry_nodes = entry_chain_nodes(entry_anchor_name, dest_leaf)
                 cond = ""
                 if t.guard:
-                    gid = "{}_{}_{}".format(t.src, t.event or "Initial", t.guard)
-                    cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(sanitize_id(gid))
+                    gid = guard_map[t.guard]
+                    cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(gid)
                 out.append("            {}{{".format(cond) if cond else "            {")
                 out.append("              on_transition(s_, State::{}, e);".format(sanitize_id(dest_leaf)))
                 # exit nodes
                 for en in exit_nodes:
                     node = m.nodes[en]
                     for act in node.exit_actions:
-                        aid = "{}_exit_{}".format(node.name, act)
-                        out.append("              impl_.action(State::{}, e, ActionId::{});".format(sanitize_id(node.name), sanitize_id(aid)))
+                        aid = action_map[act]
+                        out.append("              impl_.action(State::{}, e, ActionId::{});".format(sanitize_id(node.name), aid))
                     out.append("              impl_.on_exit(State::{});".format(sanitize_id(node.name)))
                 # transition action
                 if t.action:
-                    aid = "{}_{}_{}".format(t.src, t.event or "Initial", t.action)
-                    out.append("              impl_.action(s_, e, ActionId::{});".format(sanitize_id(aid)))
+                    aid = action_map[t.action]
+                    out.append("              impl_.action(s_, e, ActionId::{});".format(aid))
                 # entry nodes
                 if exit_common and source_node is not None:
                     node = source_node
                     out.append("              impl_.on_entry(State::{});".format(sanitize_id(node.name)))
                     for act in node.entry_actions:
-                        aid = "{}_entry_{}".format(node.name, act)
-                        out.append("              impl_.action(State::{}, e, ActionId::{});".format(sanitize_id(node.name), sanitize_id(aid)))
+                        aid = action_map[act]
+                        out.append("              impl_.action(State::{}, e, ActionId::{});".format(sanitize_id(node.name), aid))
                 for en in entry_nodes:
                     node = m.nodes[en]
                     out.append("              impl_.on_entry(State::{});".format(sanitize_id(node.name)))
                     for act in node.entry_actions:
-                        aid = "{}_entry_{}".format(node.name, act)
-                        out.append("              impl_.action(State::{}, e, ActionId::{});".format(sanitize_id(node.name), sanitize_id(aid)))
+                        aid = action_map[act]
+                        out.append("              impl_.action(State::{}, e, ActionId::{});".format(sanitize_id(node.name), aid))
                 out.append("              s_ = State::{};".format(sanitize_id(dest_leaf)))
                 out.append("              return;")
                 out.append("            }")

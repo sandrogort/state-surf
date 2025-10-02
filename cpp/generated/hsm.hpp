@@ -22,17 +22,12 @@ enum class Event {
   TERMINATE
 };
 enum class GuardId {
-  s_I_isFooTrue,
-  s1_D_isFooFalse,
-  s11_D_isFooTrue,
-  s2_I_isFooFalse
+  isFooTrue,
+  isFooFalse
 };
 enum class ActionId {
-  s_I_setFooFalse,
-  s1_D_setFooTrue,
-  s11_D_setFooFalse,
-  s2_I_setFooTrue,
-  __root___Initial_setFooFalse
+  setFooFalse,
+  setFooTrue
 };
 struct IHooks {
   virtual ~IHooks() {}
@@ -48,7 +43,7 @@ public:
   explicit StateSurfMachine(IHooks& impl) : impl_(impl) { reset(); }
   void reset() {
     terminated_ = false;
-    impl_.action(State::s, Event{}, ActionId::__root___Initial_setFooFalse);
+    impl_.action(State::s, Event{}, ActionId::setFooFalse);
     impl_.on_entry(State::s);
     impl_.on_entry(State::s2);
     impl_.on_entry(State::s21);
@@ -64,9 +59,9 @@ public:
       case State::s: {
         switch (e) {
           case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
+            if (impl_.guard(s_, e, GuardId::isFooTrue)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
+              impl_.action(s_, e, ActionId::setFooFalse);
               return;
             }
             return;
@@ -100,17 +95,17 @@ public:
               on_transition(s_, s_, e);
               return;
             }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
+            if (impl_.guard(s_, e, GuardId::isFooTrue)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
+              impl_.action(s_, e, ActionId::setFooFalse);
               return;
             }
             return;
           }
           case Event::D: {
-            if (impl_.guard(s_, e, GuardId::s1_D_isFooFalse)) {
+            if (impl_.guard(s_, e, GuardId::isFooFalse)) {
               on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s1_D_setFooTrue);
+              impl_.action(s_, e, ActionId::setFooTrue);
               impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
@@ -208,16 +203,16 @@ public:
             return;
           }
           case Event::D: {
-            if (impl_.guard(s_, e, GuardId::s11_D_isFooTrue)) {
+            if (impl_.guard(s_, e, GuardId::isFooTrue)) {
               on_transition(s_, State::s11, e);
-              impl_.action(s_, e, ActionId::s11_D_setFooFalse);
+              impl_.action(s_, e, ActionId::setFooFalse);
               s_ = State::s11;
               return;
             }
-            if (impl_.guard(s_, e, GuardId::s1_D_isFooFalse)) {
+            if (impl_.guard(s_, e, GuardId::isFooFalse)) {
               on_transition(s_, State::s11, e);
               impl_.on_exit(State::s11);
-              impl_.action(s_, e, ActionId::s1_D_setFooTrue);
+              impl_.action(s_, e, ActionId::setFooTrue);
               impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
@@ -229,9 +224,9 @@ public:
               on_transition(s_, s_, e);
               return;
             }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
+            if (impl_.guard(s_, e, GuardId::isFooTrue)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
+              impl_.action(s_, e, ActionId::setFooFalse);
               return;
             }
             return;
@@ -312,14 +307,14 @@ public:
       case State::s2: {
         switch (e) {
           case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
+            if (impl_.guard(s_, e, GuardId::isFooFalse)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
+              impl_.action(s_, e, ActionId::setFooTrue);
               return;
             }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
+            if (impl_.guard(s_, e, GuardId::isFooTrue)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
+              impl_.action(s_, e, ActionId::setFooFalse);
               return;
             }
             return;
@@ -404,14 +399,14 @@ public:
             return;
           }
           case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
+            if (impl_.guard(s_, e, GuardId::isFooFalse)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
+              impl_.action(s_, e, ActionId::setFooTrue);
               return;
             }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
+            if (impl_.guard(s_, e, GuardId::isFooTrue)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
+              impl_.action(s_, e, ActionId::setFooFalse);
               return;
             }
             return;
@@ -524,14 +519,14 @@ public:
             return;
           }
           case Event::I: {
-            if (impl_.guard(s_, e, GuardId::s2_I_isFooFalse)) {
+            if (impl_.guard(s_, e, GuardId::isFooFalse)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::s2_I_setFooTrue);
+              impl_.action(s_, e, ActionId::setFooTrue);
               return;
             }
-            if (impl_.guard(s_, e, GuardId::s_I_isFooTrue)) {
+            if (impl_.guard(s_, e, GuardId::isFooTrue)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::s_I_setFooFalse);
+              impl_.action(s_, e, ActionId::setFooFalse);
               return;
             }
             return;
