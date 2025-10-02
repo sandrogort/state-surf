@@ -1,0 +1,21 @@
+@startuml
+
+[*] --> State1
+
+State1 --> State2 : eventA
+State1 : init 
+State1 : entry 
+State1 : exit
+State1 : eventFoo
+
+State2 --> State3 : eventB [guardA]
+State2 : entry
+
+State3 --> State4 : eventC / actionA
+
+State4 --> State5 : eventD [guardB] / actionB
+State4 : exit
+
+State5 : init
+
+@enduml

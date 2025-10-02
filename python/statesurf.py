@@ -298,13 +298,17 @@ def gen_header(m, machine_name: str) -> str:
             n = n.parent
         return lines
 
+    def append_state(lst: List[str], name: str):
+        if name != "__root__":
+            lst.append(name)
+
     def entry_chain_nodes(from_lca_name: str, dest_leaf: str) -> List[str]:
-        # nodes from child under lca to dest leaf
-        nodes=[]
-        n = m.nodes[dest_leaf]
+        # nodes from child under lca to dest leaf, excluding __root__
         acc=[]
+        n = m.nodes[dest_leaf]
         while n and n.name != from_lca_name:
-            acc.append(n.name)
+            if n.name != "__root__":
+                acc.append(n.name)
             n = n.parent
         acc.reverse()
         return acc
@@ -403,7 +407,7 @@ def gen_header(m, machine_name: str) -> str:
                 n = m.nodes[s]
                 source_node = m.nodes.get(t.src)
                 while n and (source_node is None or n.name != source_node.name):
-                    exit_nodes.append(n.name)
+                    append_state(exit_nodes, n.name)
                     n = n.parent
                 dest_within_source = False
                 if t.src in m.nodes:
@@ -413,15 +417,15 @@ def gen_header(m, machine_name: str) -> str:
                             dest_within_source = True
                             break
                         dn = dn.parent
-                if not dest_within_source and source_node is not None:
-                    exit_nodes.append(t.src)
+                if not dest_within_source and source_node is not None and source_node.name != "__root__":
+                    append_state(exit_nodes, t.src)
                     n = source_node.parent
                 else:
                     n = source_node.parent if source_node is not None else n
                 lca_src_dest = m.lca(t.src, dest_leaf) if t.src in m.nodes else None
                 if not dest_within_source:
                     while n and (lca_src_dest is None or n.name != lca_src_dest.name):
-                        exit_nodes.append(n.name)
+                        append_state(exit_nodes, n.name)
                         n = n.parent
                 exit_common = False
                 if (not t.internal) and dest_within_source and t.src == t.dst:
@@ -450,7 +454,7 @@ def gen_header(m, machine_name: str) -> str:
                     aid = action_map[t.action]
                     out.append("              impl_.action(s_, e, ActionId::{});".format(aid))
                 # entry nodes
-                if exit_common and source_node is not None:
+                if exit_common and source_node is not None and source_node.name != "__root__":
                     node = source_node
                     out.append("              impl_.on_entry(State::{});".format(sanitize_id(node.name)))
                     for act in node.entry_actions:
