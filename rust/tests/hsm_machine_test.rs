@@ -1,12 +1,12 @@
-use state_surf::generated::hsm::statesurf::{
-    ActionId, Event, GuardId, Hooks, State, StateSurfMachine,
+use state_surf::generated::hsm::hsm::{
+    HsmActionId, HsmEvent, HsmGuardId, HsmHooks, HsmMachine, HsmState,
 };
 
 struct RecordingHooks {
-    entries: Vec<State>,
-    exits: Vec<State>,
-    actions: Vec<ActionId>,
-    guard_calls: Vec<GuardId>,
+    entries: Vec<HsmState>,
+    exits: Vec<HsmState>,
+    actions: Vec<HsmActionId>,
+    guard_calls: Vec<HsmGuardId>,
     foo: bool,
 }
 
@@ -35,40 +35,40 @@ impl RecordingHooks {
     }
 }
 
-impl Hooks for RecordingHooks {
-    fn on_entry(&mut self, state: State) {
+impl HsmHooks for RecordingHooks {
+    fn on_entry(&mut self, state: HsmState) {
         self.entries.push(state);
     }
 
-    fn on_exit(&mut self, state: State) {
+    fn on_exit(&mut self, state: HsmState) {
         self.exits.push(state);
     }
 
-    fn guard(&mut self, _state: State, _event: Event, guard: GuardId) -> bool {
+    fn guard(&mut self, _state: HsmState, _event: HsmEvent, guard: HsmGuardId) -> bool {
         self.guard_calls.push(guard);
         match guard {
-            GuardId::isFooTrue => self.foo,
-            GuardId::isFooFalse => !self.foo,
+            HsmGuardId::isFooTrue => self.foo,
+            HsmGuardId::isFooFalse => !self.foo,
         }
     }
 
-    fn action(&mut self, _state: State, _event: Event, action: ActionId) {
+    fn action(&mut self, _state: HsmState, _event: HsmEvent, action: HsmActionId) {
         self.actions.push(action);
         match action {
-            ActionId::setFooFalse => self.foo = false,
-            ActionId::setFooTrue => self.foo = true,
+            HsmActionId::setFooFalse => self.foo = false,
+            HsmActionId::setFooTrue => self.foo = true,
         }
     }
 }
 
 fn dispatch_and_expect(
-    machine: &mut StateSurfMachine<RecordingHooks>,
-    event: Event,
-    expected_exits: &[State],
-    expected_entries: &[State],
-    expected_actions: &[ActionId],
-    expected_guards: &[GuardId],
-    expected_state: State,
+    machine: &mut HsmMachine<RecordingHooks>,
+    event: HsmEvent,
+    expected_exits: &[HsmState],
+    expected_entries: &[HsmState],
+    expected_actions: &[HsmActionId],
+    expected_guards: &[HsmGuardId],
+    expected_state: HsmState,
 ) {
     machine.dispatch(event);
     {
@@ -86,11 +86,11 @@ fn dispatch_and_expect(
 #[test]
 fn drives_through_lifecycle() {
     let hooks = RecordingHooks::new();
-    let mut machine = StateSurfMachine::new(hooks);
+    let mut machine = HsmMachine::new(hooks);
 
     {
         let hooks_view = machine.hooks();
-        assert_eq!(machine.state(), State::InitialPseudoState);
+        assert_eq!(machine.state(), HsmState::InitialPseudoState);
         assert!(!machine.terminated());
         assert!(hooks_view.entries.is_empty());
         assert!(hooks_view.actions.is_empty());
@@ -100,134 +100,134 @@ fn drives_through_lifecycle() {
     machine.start();
     {
         let hooks_view = machine.hooks();
-        let expected_initial_entries = vec![State::s, State::s2, State::s21, State::s211];
+        let expected_initial_entries = vec![HsmState::s, HsmState::s2, HsmState::s21, HsmState::s211];
         assert_eq!(hooks_view.entries, expected_initial_entries);
         assert!(hooks_view.exits.is_empty());
-        let expected_initial_actions = vec![ActionId::setFooFalse];
+        let expected_initial_actions = vec![HsmActionId::setFooFalse];
         assert_eq!(hooks_view.actions, expected_initial_actions);
         assert!(hooks_view.guard_calls.is_empty());
         assert!(!hooks_view.foo);
     }
     assert!(!machine.terminated());
-    assert_eq!(machine.state(), State::s211);
+    assert_eq!(machine.state(), HsmState::s211);
     machine.hooks_mut().reset_logs();
 
     dispatch_and_expect(
         &mut machine,
-        Event::G,
-        &[State::s211, State::s21, State::s2],
-        &[State::s1, State::s11],
+        HsmEvent::G,
+        &[HsmState::s211, HsmState::s21, HsmState::s2],
+        &[HsmState::s1, HsmState::s11],
         &[],
         &[],
-        State::s11,
+        HsmState::s11,
     );
 
     dispatch_and_expect(
         &mut machine,
-        Event::I,
+        HsmEvent::I,
         &[],
         &[],
         &[],
         &[],
-        State::s11,
+        HsmState::s11,
     );
 
     dispatch_and_expect(
         &mut machine,
-        Event::A,
-        &[State::s11, State::s1],
-        &[State::s1, State::s11],
+        HsmEvent::A,
+        &[HsmState::s11, HsmState::s1],
+        &[HsmState::s1, HsmState::s11],
         &[],
         &[],
-        State::s11,
+        HsmState::s11,
     );
 
     dispatch_and_expect(
         &mut machine,
-        Event::D,
-        &[State::s11, State::s1],
-        &[State::s1, State::s11],
-        &[ActionId::setFooTrue],
-        &[GuardId::isFooTrue, GuardId::isFooFalse],
-        State::s11,
+        HsmEvent::D,
+        &[HsmState::s11, HsmState::s1],
+        &[HsmState::s1, HsmState::s11],
+        &[HsmActionId::setFooTrue],
+        &[HsmGuardId::isFooTrue, HsmGuardId::isFooFalse],
+        HsmState::s11,
     );
 
     dispatch_and_expect(
         &mut machine,
-        Event::D,
-        &[State::s11],
-        &[State::s11],
-        &[ActionId::setFooFalse],
-        &[GuardId::isFooTrue],
-        State::s11,
+        HsmEvent::D,
+        &[HsmState::s11],
+        &[HsmState::s11],
+        &[HsmActionId::setFooFalse],
+        &[HsmGuardId::isFooTrue],
+        HsmState::s11,
     );
 
     dispatch_and_expect(
         &mut machine,
-        Event::C,
-        &[State::s11, State::s1],
-        &[State::s2, State::s21, State::s211],
+        HsmEvent::C,
+        &[HsmState::s11, HsmState::s1],
+        &[HsmState::s2, HsmState::s21, HsmState::s211],
         &[],
         &[],
-        State::s211,
+        HsmState::s211,
     );
 
     dispatch_and_expect(
         &mut machine,
-        Event::E,
-        &[State::s211, State::s21, State::s2],
-        &[State::s1, State::s11],
+        HsmEvent::E,
+        &[HsmState::s211, HsmState::s21, HsmState::s2],
+        &[HsmState::s1, HsmState::s11],
         &[],
         &[],
-        State::s11,
+        HsmState::s11,
     );
 
     dispatch_and_expect(
         &mut machine,
-        Event::E,
-        &[State::s11, State::s1],
-        &[State::s1, State::s11],
+        HsmEvent::E,
+        &[HsmState::s11, HsmState::s1],
+        &[HsmState::s1, HsmState::s11],
         &[],
         &[],
-        State::s11,
+        HsmState::s11,
     );
 
     dispatch_and_expect(
         &mut machine,
-        Event::G,
-        &[State::s11, State::s1],
-        &[State::s2, State::s21, State::s211],
+        HsmEvent::G,
+        &[HsmState::s11, HsmState::s1],
+        &[HsmState::s2, HsmState::s21, HsmState::s211],
         &[],
         &[],
-        State::s211,
+        HsmState::s211,
     );
 
     dispatch_and_expect(
         &mut machine,
-        Event::I,
+        HsmEvent::I,
         &[],
         &[],
-        &[ActionId::setFooTrue],
-        &[GuardId::isFooFalse],
-        State::s211,
+        &[HsmActionId::setFooTrue],
+        &[HsmGuardId::isFooFalse],
+        HsmState::s211,
     );
 
     dispatch_and_expect(
         &mut machine,
-        Event::I,
+        HsmEvent::I,
         &[],
         &[],
-        &[ActionId::setFooFalse],
-        &[GuardId::isFooFalse, GuardId::isFooTrue],
-        State::s211,
+        &[HsmActionId::setFooFalse],
+        &[HsmGuardId::isFooFalse, HsmGuardId::isFooTrue],
+        HsmState::s211,
     );
 
-    machine.dispatch(Event::TERMINATE);
+    machine.dispatch(HsmEvent::TERMINATE);
     assert!(machine.terminated());
-    assert_eq!(machine.state(), State::FinalPseudoState);
+    assert_eq!(machine.state(), HsmState::FinalPseudoState);
     {
         let hooks_view = machine.hooks();
-        assert_eq!(hooks_view.exits, vec![State::s211, State::s21, State::s2, State::s]);
-        assert_eq!(hooks_view.entries, vec![State::FinalPseudoState]);
+        assert_eq!(hooks_view.exits, vec![HsmState::s211, HsmState::s21, HsmState::s2, HsmState::s]);
+        assert_eq!(hooks_view.entries, vec![HsmState::FinalPseudoState]);
     }
 }

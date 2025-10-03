@@ -3,9 +3,9 @@
 #[allow(clippy::upper_case_acronyms)]
 #[allow(unreachable_code)]
 #[allow(unreachable_patterns)]
-pub mod statesurf {
+pub mod fsm {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum State {
+    pub enum FsmState {
         InitialPseudoState,
         State1,
         State2,
@@ -16,7 +16,7 @@ pub mod statesurf {
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum Event {
+    pub enum FsmEvent {
         eventA,
         eventB,
         eventC,
@@ -25,49 +25,49 @@ pub mod statesurf {
         init
     }
 
-    impl Default for Event {
+    impl Default for FsmEvent {
         fn default() -> Self {
-            Event::eventA
+            FsmEvent::eventA
         }
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum GuardId {
+    pub enum FsmGuardId {
         guardA,
         guardB
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum ActionId {
+    pub enum FsmActionId {
         actionA,
         actionB
     }
 
-    pub trait Hooks {
-        fn on_entry(&mut self, state: State);
-        fn on_exit(&mut self, state: State);
-        fn guard(&mut self, state: State, event: Event, guard: GuardId) -> bool;
-        fn action(&mut self, state: State, event: Event, action: ActionId);
+    pub trait FsmHooks {
+        fn on_entry(&mut self, state: FsmState);
+        fn on_exit(&mut self, state: FsmState);
+        fn guard(&mut self, state: FsmState, event: FsmEvent, guard: FsmGuardId) -> bool;
+        fn action(&mut self, state: FsmState, event: FsmEvent, action: FsmActionId);
     }
 
     #[inline]
-    pub fn on_event(_state: State, _event: Event) {}
+    pub fn on_event(_state: FsmState, _event: FsmEvent) {}
 
     #[inline]
-    pub fn on_transition(_from: State, _to: State, _event: Event) {}
+    pub fn on_transition(_from: FsmState, _to: FsmState, _event: FsmEvent) {}
 
-    pub struct StateSurfMachine<H: Hooks> {
+    pub struct FsmMachine<H: FsmHooks> {
         hooks: H,
-        state: State,
+        state: FsmState,
         started: bool,
         terminated: bool,
     }
 
-    impl<H: Hooks> StateSurfMachine<H> {
+    impl<H: FsmHooks> FsmMachine<H> {
         pub fn new(hooks: H) -> Self {
             let mut machine = Self {
                 hooks,
-                state: State::InitialPseudoState,
+                state: FsmState::InitialPseudoState,
                 started: false,
                 terminated: false,
             };
@@ -78,7 +78,7 @@ pub mod statesurf {
         pub fn reset(&mut self) {
             self.terminated = false;
             self.started = false;
-            self.state = State::InitialPseudoState;
+            self.state = FsmState::InitialPseudoState;
         }
 
         pub fn start(&mut self) {
@@ -86,12 +86,12 @@ pub mod statesurf {
                 return;
             }
             self.started = true;
-            on_transition(State::InitialPseudoState, State::State1, Event::default());
-            self.state = State::State1;
-            self.hooks.on_entry(State::State1);
+            on_transition(FsmState::InitialPseudoState, FsmState::State1, FsmEvent::default());
+            self.state = FsmState::State1;
+            self.hooks.on_entry(FsmState::State1);
         }
 
-        pub fn state(&self) -> State {
+        pub fn state(&self) -> FsmState {
             self.state
         }
 
@@ -107,7 +107,7 @@ pub mod statesurf {
             &mut self.hooks
         }
 
-        pub fn dispatch(&mut self, event: Event) {
+        pub fn dispatch(&mut self, event: FsmEvent) {
             if self.terminated {
                 return;
             }
@@ -119,20 +119,20 @@ pub mod statesurf {
             }
             on_event(self.state, event);
             match self.state {
-                State::State1 => {
+                FsmState::State1 => {
                     match event {
-                        Event::eventA => {
-            on_transition(self.state, State::State2, event);
-            self.hooks.on_exit(State::State1);
-            self.hooks.on_entry(State::State2);
-            self.state = State::State2;
+                        FsmEvent::eventA => {
+            on_transition(self.state, FsmState::State2, event);
+            self.hooks.on_exit(FsmState::State1);
+            self.hooks.on_entry(FsmState::State2);
+            self.state = FsmState::State2;
             return;
                         }
-                        Event::init => {
+                        FsmEvent::init => {
             on_transition(self.state, self.state, event);
             return;
                         }
-                        Event::eventFoo => {
+                        FsmEvent::eventFoo => {
             on_transition(self.state, self.state, event);
             return;
                         }
@@ -141,14 +141,14 @@ pub mod statesurf {
                         }
                     }
                 }
-                State::State2 => {
+                FsmState::State2 => {
                     match event {
-                        Event::eventB => {
-            if self.hooks.guard(self.state, event, GuardId::guardA) {
-              on_transition(self.state, State::State3, event);
-              self.hooks.on_exit(State::State2);
-              self.hooks.on_entry(State::State3);
-              self.state = State::State3;
+                        FsmEvent::eventB => {
+            if self.hooks.guard(self.state, event, FsmGuardId::guardA) {
+              on_transition(self.state, FsmState::State3, event);
+              self.hooks.on_exit(FsmState::State2);
+              self.hooks.on_entry(FsmState::State3);
+              self.state = FsmState::State3;
               return;
             }
                         }
@@ -157,14 +157,14 @@ pub mod statesurf {
                         }
                     }
                 }
-                State::State3 => {
+                FsmState::State3 => {
                     match event {
-                        Event::eventC => {
-            on_transition(self.state, State::State4, event);
-            self.hooks.on_exit(State::State3);
-            self.hooks.action(self.state, event, ActionId::actionA);
-            self.hooks.on_entry(State::State4);
-            self.state = State::State4;
+                        FsmEvent::eventC => {
+            on_transition(self.state, FsmState::State4, event);
+            self.hooks.on_exit(FsmState::State3);
+            self.hooks.action(self.state, event, FsmActionId::actionA);
+            self.hooks.on_entry(FsmState::State4);
+            self.state = FsmState::State4;
             return;
                         }
                         _ => {
@@ -172,15 +172,15 @@ pub mod statesurf {
                         }
                     }
                 }
-                State::State4 => {
+                FsmState::State4 => {
                     match event {
-                        Event::eventD => {
-            if self.hooks.guard(self.state, event, GuardId::guardB) {
-              on_transition(self.state, State::State5, event);
-              self.hooks.on_exit(State::State4);
-              self.hooks.action(self.state, event, ActionId::actionB);
-              self.hooks.on_entry(State::State5);
-              self.state = State::State5;
+                        FsmEvent::eventD => {
+            if self.hooks.guard(self.state, event, FsmGuardId::guardB) {
+              on_transition(self.state, FsmState::State5, event);
+              self.hooks.on_exit(FsmState::State4);
+              self.hooks.action(self.state, event, FsmActionId::actionB);
+              self.hooks.on_entry(FsmState::State5);
+              self.state = FsmState::State5;
               return;
             }
                         }
@@ -189,9 +189,9 @@ pub mod statesurf {
                         }
                     }
                 }
-                State::State5 => {
+                FsmState::State5 => {
                     match event {
-                        Event::init => {
+                        FsmEvent::init => {
             on_transition(self.state, self.state, event);
             return;
                         }
@@ -200,10 +200,10 @@ pub mod statesurf {
                         }
                     }
                 }
-                State::InitialPseudoState => {
+                FsmState::InitialPseudoState => {
                     return;
                 }
-                State::FinalPseudoState => {
+                FsmState::FinalPseudoState => {
                     return;
                 }
                 _ => {}

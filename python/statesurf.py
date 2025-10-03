@@ -12,6 +12,12 @@ class LanguageSpec:
         self.template = template
         self.pseudo_initial_state = pseudo_initial_state
         self.pseudo_final_state = pseudo_final_state
+        self.namespace_base = "statesurf"
+        self.type_prefix = "StateMachine"
+
+    def configure(self, namespace_base: str, type_prefix: str):
+        self.namespace_base = namespace_base
+        self.type_prefix = type_prefix
 
     def state_literal(self, name: str) -> str:
         raise NotImplementedError
@@ -79,23 +85,31 @@ class CppLanguageSpec(LanguageSpec):
         self._started_var = "started_"
         self._terminated_var = "terminated_"
 
-    def _state_scope(self, name: str) -> str:
-        return f"State::{name}"
+    def configure(self, namespace_base: str, type_prefix: str):
+        super().configure(namespace_base, type_prefix)
+        prefix = ''.join(part.capitalize() for part in split_camel(type_prefix).split('_') if part)
+        prefix = prefix or "StateMachine"
+        self._state_enum = f"{prefix}State"
+        self._event_enum = f"{prefix}Event"
+        self._guard_enum = f"{prefix}GuardId"
+        self._action_enum = f"{prefix}ActionId"
+        self._hooks_type = f"{prefix}Hooks"
+        self._machine_type = f"{prefix}Machine"
 
     def state_literal(self, name: str) -> str:
-        return self._state_scope(name)
+        return f"{self._state_enum}::{name}"
 
     def event_literal(self, name: str) -> str:
-        return f"Event::{name}"
+        return f"{self._event_enum}::{name}"
 
     def action_literal(self, name: str) -> str:
-        return f"ActionId::{name}"
+        return f"{self._action_enum}::{name}"
 
     def guard_literal(self, name: str) -> str:
-        return f"GuardId::{name}"
+        return f"{self._guard_enum}::{name}"
 
     def default_event_literal(self) -> str:
-        return "Event{}"
+        return f"{self._event_enum}{{}}"
 
     def current_state_ref(self) -> str:
         return self._current_state
@@ -148,20 +162,31 @@ class RustLanguageSpec(LanguageSpec):
         self._started_ref = "self.started"
         self._terminated_ref = "self.terminated"
 
+    def configure(self, namespace_base: str, type_prefix: str):
+        super().configure(namespace_base, type_prefix)
+        prefix = ''.join(part.capitalize() for part in split_camel(type_prefix).split('_') if part)
+        prefix = prefix or "StateMachine"
+        self._state_enum = f"{prefix}State"
+        self._event_enum = f"{prefix}Event"
+        self._guard_enum = f"{prefix}GuardId"
+        self._action_enum = f"{prefix}ActionId"
+        self._hooks_trait = f"{prefix}Hooks"
+        self._machine_type = f"{prefix}Machine"
+
     def state_literal(self, name: str) -> str:
-        return f"State::{name}"
+        return f"{self._state_enum}::{name}"
 
     def event_literal(self, name: str) -> str:
-        return f"Event::{name}"
+        return f"{self._event_enum}::{name}"
 
     def action_literal(self, name: str) -> str:
-        return f"ActionId::{name}"
+        return f"{self._action_enum}::{name}"
 
     def guard_literal(self, name: str) -> str:
-        return f"GuardId::{name}"
+        return f"{self._guard_enum}::{name}"
 
     def default_event_literal(self) -> str:
-        return "Event::default()"
+        return f"{self._event_enum}::default()"
 
     def current_state_ref(self) -> str:
         return self._state_ref
@@ -405,12 +430,41 @@ def build_transitions_by_state(m: Model):
         result[s] = evmap
     return result
 
-def gen_code(m, machine_name: str, language: str) -> str:
+def normalize_identifier(name: str) -> str:
+    return re.sub(r'[^A-Za-z0-9_]', '_', name)
+
+
+def split_camel(name: str) -> str:
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
+
+
+def generate_namespace_base(puml_path: Path) -> str:
+    base = puml_path.stem
+    base = split_camel(base)
+    base = normalize_identifier(base)
+    base = base.strip('_') or "state_machine"
+    return base.lower()
+
+
+def generate_type_prefix(puml_path: Path) -> str:
+    base = puml_path.stem
+    base = normalize_identifier(split_camel(base))
+    parts = [part for part in base.split('_') if part]
+    return ''.join(part.capitalize() for part in parts) or "StateMachine"
+
+
+def gen_code(m, machine_name: str, language: str, namespace_base: str, type_prefix: str) -> str:
+    namespace_base = normalize_identifier(namespace_base).lower() or "state_machine"
+    type_prefix = type_prefix or "StateMachine"
+    type_prefix = ''.join(part.capitalize() for part in split_camel(type_prefix).split('_') if part)
+    type_prefix = type_prefix or "StateMachine"
     if language not in LANGUAGE_SPECS:
         raise ValueError(
             f"Unsupported language '{language}'. Available: {', '.join(sorted(LANGUAGE_SPECS.keys()))}"
         )
     spec = LANGUAGE_SPECS[language]
+    spec.configure(namespace_base, type_prefix)
 
     def sanitize_id(x: str) -> str:
         return re.sub(r'[^A-Za-z0-9_]', '_', x)
@@ -865,6 +919,8 @@ def gen_code(m, machine_name: str, language: str) -> str:
 
     code = template.render(
         machine_name=machine_name,
+        namespace_base=namespace_base,
+        type_prefix=type_prefix,
         states=[state_ids_map[s] for s in states] or ["__None"],
         events=[event_ids_map[e] for e in events] or ["__None"],
         guard_ids=guard_ids if guard_ids else ["__None"],
@@ -891,11 +947,14 @@ def gen_code(m, machine_name: str, language: str) -> str:
 def generate(
     input_path: Path,
     output_path: Path,
-    machine_name: str = "StateSurfMachine",
+    machine_name: Optional[str] = None,
     language: str = "cpp",
 ) -> None:
     model = parse_puml(input_path)
-    code = gen_code(model, machine_name, language)
+    namespace_base = generate_namespace_base(input_path)
+    type_prefix = generate_type_prefix(input_path)
+    effective_machine_name = machine_name or f"{type_prefix}Machine"
+    code = gen_code(model, effective_machine_name, language, namespace_base, type_prefix)
     output_path.write_text(code, encoding="utf-8")
 
 def main(argv):
@@ -905,7 +964,12 @@ def main(argv):
     g = sub.add_parser("generate")
     g.add_argument("-i", "--input", required=True)
     g.add_argument("-o", "--output", required=True)
-    g.add_argument("-n", "--name", default="StateSurfMachine")
+    g.add_argument(
+        "-n",
+        "--name",
+        default=None,
+        help="Optional machine class name (defaults to <puml_file_name>Machine)",
+    )
     g.add_argument("-l", "--language", default="cpp")
     v = sub.add_parser("validate")
     v.add_argument("-i", "--input", required=True)

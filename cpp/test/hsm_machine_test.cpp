@@ -6,35 +6,35 @@
 
 namespace {
 
-struct RecordingHooks final : statesurf::IHooks {
-  std::vector<statesurf::State> entries;
-  std::vector<statesurf::State> exits;
-  std::vector<statesurf::ActionId> actions;
-  std::vector<statesurf::GuardId> guard_calls;
+struct RecordingHooks final : HsmHooks {
+  std::vector<HsmState> entries;
+  std::vector<HsmState> exits;
+  std::vector<HsmActionId> actions;
+  std::vector<HsmGuardId> guard_calls;
   bool foo = true;
 
-  void on_entry(statesurf::State s) override { entries.push_back(s); }
-  void on_exit(statesurf::State s) override { exits.push_back(s); }
+  void on_entry(HsmState s) override { entries.push_back(s); }
+  void on_exit(HsmState s) override { exits.push_back(s); }
 
-  bool guard(statesurf::State, statesurf::Event, statesurf::GuardId id) override {
+  bool guard(HsmState, HsmEvent, HsmGuardId id) override {
     guard_calls.push_back(id);
     switch (id) {
-      case statesurf::GuardId::isFooTrue:
+      case HsmGuardId::isFooTrue:
         return foo;
-      case statesurf::GuardId::isFooFalse:
+      case HsmGuardId::isFooFalse:
         return !foo;
       default:
         return false;
     }
   }
 
-  void action(statesurf::State, statesurf::Event, statesurf::ActionId id) override {
+  void action(HsmState, HsmEvent, HsmActionId id) override {
     actions.push_back(id);
     switch (id) {
-      case statesurf::ActionId::setFooFalse:
+      case HsmActionId::setFooFalse:
         foo = false;
         break;
-      case statesurf::ActionId::setFooTrue:
+      case HsmActionId::setFooTrue:
         foo = true;
         break;
       default:
@@ -54,37 +54,37 @@ struct RecordingHooks final : statesurf::IHooks {
 
 TEST(StateSurfMachine, DrivesThroughLifecycle) {
   RecordingHooks hooks;
-  statesurf::StateSurfMachine machine(hooks);
+  HsmMachine machine(hooks);
 
-  EXPECT_EQ(machine.state(), statesurf::State::InitialPseudoState);
+  EXPECT_EQ(machine.state(), HsmState::InitialPseudoState);
   EXPECT_FALSE(machine.terminated());
   EXPECT_TRUE(hooks.entries.empty());
   EXPECT_TRUE(hooks.actions.empty());
 
   machine.start();
 
-  const std::vector<statesurf::State> expected_initial_entries{
-      statesurf::State::s,
-      statesurf::State::s2,
-      statesurf::State::s21,
-      statesurf::State::s211};
+  const std::vector<HsmState> expected_initial_entries{
+      HsmState::s,
+      HsmState::s2,
+      HsmState::s21,
+      HsmState::s211};
   EXPECT_EQ(hooks.entries, expected_initial_entries);
   EXPECT_TRUE(hooks.exits.empty());
-  const std::vector<statesurf::ActionId> expected_initial_actions{
-      statesurf::ActionId::setFooFalse};
+  const std::vector<HsmActionId> expected_initial_actions{
+      HsmActionId::setFooFalse};
   EXPECT_EQ(hooks.actions, expected_initial_actions);
   EXPECT_FALSE(hooks.foo);
   EXPECT_FALSE(machine.terminated());
-  EXPECT_EQ(machine.state(), statesurf::State::s211);
+  EXPECT_EQ(machine.state(), HsmState::s211);
 
   hooks.reset_logs();
 
-  auto dispatch_and_expect = [&](statesurf::Event event,
-                                 std::vector<statesurf::State> expected_exits,
-                                 std::vector<statesurf::State> expected_entries,
-                                 std::vector<statesurf::ActionId> expected_actions,
-                                 std::vector<statesurf::GuardId> expected_guards,
-                                 statesurf::State expected_state) {
+  auto dispatch_and_expect = [&](HsmEvent event,
+                                 std::vector<HsmState> expected_exits,
+                                 std::vector<HsmState> expected_entries,
+                                 std::vector<HsmActionId> expected_actions,
+                                 std::vector<HsmGuardId> expected_guards,
+                                 HsmState expected_state) {
     machine.dispatch(event);
     EXPECT_EQ(hooks.exits, expected_exits);
     EXPECT_EQ(hooks.entries, expected_entries);
@@ -96,94 +96,94 @@ TEST(StateSurfMachine, DrivesThroughLifecycle) {
   };
 
   dispatch_and_expect(
-      statesurf::Event::G,
-      {statesurf::State::s211, statesurf::State::s21, statesurf::State::s2},
-      {statesurf::State::s1, statesurf::State::s11},
+      HsmEvent::G,
+      {HsmState::s211, HsmState::s21, HsmState::s2},
+      {HsmState::s1, HsmState::s11},
       {},
       {},
-      statesurf::State::s11);
+      HsmState::s11);
 
   dispatch_and_expect(
-      statesurf::Event::I,
+      HsmEvent::I,
       {},
       {},
       {},
       {},
-      statesurf::State::s11);
+      HsmState::s11);
 
   dispatch_and_expect(
-      statesurf::Event::A,
-      {statesurf::State::s11, statesurf::State::s1},
-      {statesurf::State::s1, statesurf::State::s11},
+      HsmEvent::A,
+      {HsmState::s11, HsmState::s1},
+      {HsmState::s1, HsmState::s11},
       {},
       {},
-      statesurf::State::s11);
+      HsmState::s11);
 
   dispatch_and_expect(
-      statesurf::Event::D,
-      {statesurf::State::s11, statesurf::State::s1},
-      {statesurf::State::s1, statesurf::State::s11},
-      {statesurf::ActionId::setFooTrue},
-      {statesurf::GuardId::isFooTrue, statesurf::GuardId::isFooFalse},
-      statesurf::State::s11);
+      HsmEvent::D,
+      {HsmState::s11, HsmState::s1},
+      {HsmState::s1, HsmState::s11},
+      {HsmActionId::setFooTrue},
+      {HsmGuardId::isFooTrue, HsmGuardId::isFooFalse},
+      HsmState::s11);
 
   dispatch_and_expect(
-      statesurf::Event::D,
-      {statesurf::State::s11},
-      {statesurf::State::s11},
-      {statesurf::ActionId::setFooFalse},
-      {statesurf::GuardId::isFooTrue},
-      statesurf::State::s11);
+      HsmEvent::D,
+      {HsmState::s11},
+      {HsmState::s11},
+      {HsmActionId::setFooFalse},
+      {HsmGuardId::isFooTrue},
+      HsmState::s11);
 
   dispatch_and_expect(
-      statesurf::Event::C,
-      {statesurf::State::s11, statesurf::State::s1},
-      {statesurf::State::s2, statesurf::State::s21, statesurf::State::s211},
+      HsmEvent::C,
+      {HsmState::s11, HsmState::s1},
+      {HsmState::s2, HsmState::s21, HsmState::s211},
       {},
       {},
-      statesurf::State::s211);
+      HsmState::s211);
 
   dispatch_and_expect(
-      statesurf::Event::E,
-      {statesurf::State::s211, statesurf::State::s21, statesurf::State::s2},
-      {statesurf::State::s1, statesurf::State::s11},
+      HsmEvent::E,
+      {HsmState::s211, HsmState::s21, HsmState::s2},
+      {HsmState::s1, HsmState::s11},
       {},
       {},
-      statesurf::State::s11);
+      HsmState::s11);
 
   dispatch_and_expect(
-      statesurf::Event::E,
-      {statesurf::State::s11, statesurf::State::s1},
-      {statesurf::State::s1, statesurf::State::s11},
+      HsmEvent::E,
+      {HsmState::s11, HsmState::s1},
+      {HsmState::s1, HsmState::s11},
       {},
       {},
-      statesurf::State::s11);
+      HsmState::s11);
 
   dispatch_and_expect(
-      statesurf::Event::G,
-      {statesurf::State::s11, statesurf::State::s1},
-      {statesurf::State::s2, statesurf::State::s21, statesurf::State::s211},
+      HsmEvent::G,
+      {HsmState::s11, HsmState::s1},
+      {HsmState::s2, HsmState::s21, HsmState::s211},
       {},
       {},
-      statesurf::State::s211);
+      HsmState::s211);
 
   dispatch_and_expect(
-      statesurf::Event::I,
+      HsmEvent::I,
       {},
       {},
-      {statesurf::ActionId::setFooTrue},
-      {statesurf::GuardId::isFooFalse},
-      statesurf::State::s211);
+      {HsmActionId::setFooTrue},
+      {HsmGuardId::isFooFalse},
+      HsmState::s211);
 
   dispatch_and_expect(
-      statesurf::Event::I,
+      HsmEvent::I,
       {},
       {},
-      {statesurf::ActionId::setFooFalse},
-      {statesurf::GuardId::isFooFalse, statesurf::GuardId::isFooTrue},
-      statesurf::State::s211);
+      {HsmActionId::setFooFalse},
+      {HsmGuardId::isFooFalse, HsmGuardId::isFooTrue},
+      HsmState::s211);
 
-  machine.dispatch(statesurf::Event::TERMINATE);
+  machine.dispatch(HsmEvent::TERMINATE);
   EXPECT_TRUE(machine.terminated());
-  EXPECT_EQ(machine.state(), statesurf::State::FinalPseudoState);
+  EXPECT_EQ(machine.state(), HsmState::FinalPseudoState);
 }

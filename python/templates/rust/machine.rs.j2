@@ -3,9 +3,9 @@
 #[allow(clippy::upper_case_acronyms)]
 #[allow(unreachable_code)]
 #[allow(unreachable_patterns)]
-pub mod statesurf {
+pub mod {{ namespace_base }} {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum State {
+    pub enum {{ type_prefix }}State {
         {{ pseudo_initial }},
 {% for state in states %}
         {{ state }},
@@ -14,20 +14,20 @@ pub mod statesurf {
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum Event {
+    pub enum {{ type_prefix }}Event {
 {% for event in events %}
         {{ event }}{{ "," if not loop.last else "" }}
 {% endfor %}
     }
 
 {% if default_event_variant %}
-    impl Default for Event {
+    impl Default for {{ type_prefix }}Event {
         fn default() -> Self {
-            Event::{{ default_event_variant }}
+            {{ type_prefix }}Event::{{ default_event_variant }}
         }
     }
 {% else %}
-    impl Default for Event {
+    impl Default for {{ type_prefix }}Event {
         fn default() -> Self {
             panic!("No events defined for machine");
         }
@@ -35,40 +35,40 @@ pub mod statesurf {
 {% endif %}
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum GuardId {
+    pub enum {{ type_prefix }}GuardId {
 {% for guard in guard_ids %}
         {{ guard }}{{ "," if not loop.last else "" }}
 {% endfor %}
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum ActionId {
+    pub enum {{ type_prefix }}ActionId {
 {% for action in action_ids %}
         {{ action }}{{ "," if not loop.last else "" }}
 {% endfor %}
     }
 
-    pub trait Hooks {
-        fn on_entry(&mut self, state: State);
-        fn on_exit(&mut self, state: State);
-        fn guard(&mut self, state: State, event: Event, guard: GuardId) -> bool;
-        fn action(&mut self, state: State, event: Event, action: ActionId);
+    pub trait {{ type_prefix }}Hooks {
+        fn on_entry(&mut self, state: {{ type_prefix }}State);
+        fn on_exit(&mut self, state: {{ type_prefix }}State);
+        fn guard(&mut self, state: {{ type_prefix }}State, event: {{ type_prefix }}Event, guard: {{ type_prefix }}GuardId) -> bool;
+        fn action(&mut self, state: {{ type_prefix }}State, event: {{ type_prefix }}Event, action: {{ type_prefix }}ActionId);
     }
 
     #[inline]
-    pub fn on_event(_state: State, _event: Event) {}
+    pub fn on_event(_state: {{ type_prefix }}State, _event: {{ type_prefix }}Event) {}
 
     #[inline]
-    pub fn on_transition(_from: State, _to: State, _event: Event) {}
+    pub fn on_transition(_from: {{ type_prefix }}State, _to: {{ type_prefix }}State, _event: {{ type_prefix }}Event) {}
 
-    pub struct StateSurfMachine<H: Hooks> {
+    pub struct {{ type_prefix }}Machine<H: {{ type_prefix }}Hooks> {
         hooks: H,
-        state: State,
+        state: {{ type_prefix }}State,
         started: bool,
         terminated: bool,
     }
 
-    impl<H: Hooks> StateSurfMachine<H> {
+    impl<H: {{ type_prefix }}Hooks> {{ type_prefix }}Machine<H> {
         pub fn new(hooks: H) -> Self {
             let mut machine = Self {
                 hooks,
@@ -109,7 +109,7 @@ pub mod statesurf {
 {% endif %}
         }
 
-        pub fn state(&self) -> State {
+        pub fn state(&self) -> {{ type_prefix }}State {
             self.state
         }
 
@@ -125,7 +125,7 @@ pub mod statesurf {
             &mut self.hooks
         }
 
-        pub fn dispatch(&mut self, event: Event) {
+        pub fn dispatch(&mut self, event: {{ type_prefix }}Event) {
             if self.terminated {
                 return;
             }
