@@ -6,6 +6,13 @@ from typing import Dict, List, Optional, Tuple, Set
 from jinja2 import Environment, FileSystemLoader
 
 
+class ParseError(Exception):
+    def __init__(self, line: int, snippet: str):
+        self.line = line
+        self.snippet = snippet
+        super().__init__(f"syntax error at line {line}: {snippet.strip()}")
+
+
 class LanguageSpec:
     def __init__(self, name: str, template: str, pseudo_initial_state: str, pseudo_final_state: str):
         self.name = name
@@ -308,15 +315,17 @@ def parse_puml(path: Path) -> Model:
     re_state_open = re.compile(r'^\s*state\s+([A-Za-z_]\w*)\s*\{\s*$')
     re_state_decl = re.compile(r'^\s*state\s+([A-Za-z_]\w*)\s*$')
     re_close = re.compile(r'^\s*\}\s*$')
-    re_initial = re.compile(r'^\s*\[\*\]\s*[-]{1,2}>\s*([A-Za-z_]\w*)\s*(?::\s*(?:([A-Za-z_]\w*)\s*)?(?:\[(.*?)\])?\s*(?:/\s*([A-Za-z_]\w*))?)?\s*$')
+    re_initial = re.compile(r'^\s*\[\*\]\s*[-]{1,2}>\s*([A-Za-z_]\w*)\s*(?::\s*(?:([A-Za-z_]\w*)\s*)?(?:\[([A-Za-z_]\w*)\])?\s*(?:/\s*([A-Za-z_]\w*))?)?\s*$')
     re_entryexit = re.compile(r'^\s*([A-Za-z_]\w*)\s*:\s*(entry|exit)(?:\s*/\s*([A-Za-z_]\w*))?\s*$')
-    re_transition = re.compile(r'^\s*([A-Za-z_]\w*)\s*[-]{1,2}>\s*([A-Za-z_\*\]\[]\w*|\[\*\])\s*:\s*([A-Za-z_]\w*)?(?:\s*\[([^\]]+)\])?(?:\s*/\s*([A-Za-z_]\w*)?)?\s*$')
-    re_internal = re.compile(r'^\s*([A-Za-z_]\w*)\s*:\s*([A-Za-z_]\w*)?(?:\s*\[([^\]]+)\])?(?:\s*/\s*([A-Za-z_]\w*)?)?\s*$')
+    re_transition = re.compile(r'^\s*([A-Za-z_]\w*)\s*[-]{1,2}>\s*([A-Za-z_\*\]\[]\w*|\[\*\])\s*:\s*([A-Za-z_]\w*)?(?:\s*\[([A-Za-z_]\w*)\])?(?:\s*/\s*([A-Za-z_]\w*)?)?\s*$')
+    re_internal = re.compile(r'^\s*([A-Za-z_]\w*)\s*:\s*([A-Za-z_]\w*)?(?:\s*\[([A-Za-z_]\w*)\])?(?:\s*/\s*([A-Za-z_]\w*)?)?\s*$')
 
-    for raw in text.splitlines():
+    for lineno, raw in enumerate(text.splitlines(), 1):
         line = raw.strip()
         if not line or line.startswith("'") or line.startswith("@"):
             continue
+
+        matched = False
 
         mo = re_state_open.match(line)
         if mo:
@@ -324,6 +333,7 @@ def parse_puml(path: Path) -> Model:
             parent = stack[-1]
             node = m.ensure_node(name, parent)
             stack.append(node)
+            matched = True
             continue
 
         mo = re_state_decl.match(line)
@@ -331,11 +341,13 @@ def parse_puml(path: Path) -> Model:
             name = mo.group(1)
             parent = stack[-1]
             m.ensure_node(name, parent)
+            matched = True
             continue
 
         if re_close.match(line):
             if len(stack)>1:
                 stack.pop()
+            matched = True
             continue
 
         mo = re_initial.match(line)
@@ -348,6 +360,7 @@ def parse_puml(path: Path) -> Model:
             if action:
                 scope.initial_action = action
                 m.actions.add(action)
+            matched = True
             continue
 
         mo = re_entryexit.match(line)
@@ -359,6 +372,7 @@ def parse_puml(path: Path) -> Model:
                 if act: node.entry_actions.append(act); m.actions.add(act)
             else:
                 if act: node.exit_actions.append(act); m.actions.add(act)
+            matched = True
             continue
 
         mo = re_transition.match(line)
@@ -376,10 +390,12 @@ def parse_puml(path: Path) -> Model:
             if gd: m.guards.add(gd)
             if ac: m.actions.add(ac)
             m.transitions.append(Transition(src, dst_name, ev, gd, ac, internal=False))
+            matched = True
             continue
 
         mo = re_internal.match(line)
         if mo:
+            matched = True
             st, ev, gd, ac = mo.groups()
             if ev in ('entry','exit'):
                 continue
@@ -391,6 +407,9 @@ def parse_puml(path: Path) -> Model:
             if ac: m.actions.add(ac)
             m.transitions.append(Transition(st, st, ev, gd, ac, internal=True))
             continue
+
+        if not matched:
+            raise ParseError(lineno, raw)
 
     return m
 
@@ -974,15 +993,19 @@ def main(argv):
     v = sub.add_parser("validate")
     v.add_argument("-i", "--input", required=True)
     args = ap.parse_args(argv)
-    if args.cmd == "generate":
-        generate(Path(args.input), Path(args.output), args.name, args.language.lower())
-        return 0
-    elif args.cmd == "validate":
-        parse_puml(Path(args.input))
-        print("OK")
-        return 0
-    else:
-        ap.print_help()
+    try:
+        if args.cmd == "generate":
+            generate(Path(args.input), Path(args.output), args.name, args.language.lower())
+            return 0
+        elif args.cmd == "validate":
+            parse_puml(Path(args.input))
+            print("OK")
+            return 0
+        else:
+            ap.print_help()
+            return 1
+    except ParseError as err:
+        print(f"Error: {err}", file=sys.stderr)
         return 1
 
 if __name__ == "__main__":
