@@ -320,7 +320,9 @@ def parse_puml(path: Path) -> Model:
     re_transition = re.compile(r'^\s*([A-Za-z_]\w*)\s*[-]{1,2}>\s*([A-Za-z_\*\]\[]\w*|\[\*\])\s*:\s*([A-Za-z_]\w*)?(?:\s*\[([A-Za-z_]\w*)\])?(?:\s*/\s*([A-Za-z_]\w*)?)?\s*$')
     re_internal = re.compile(r'^\s*([A-Za-z_]\w*)\s*:\s*([A-Za-z_]\w*)?(?:\s*\[([A-Za-z_]\w*)\])?(?:\s*/\s*([A-Za-z_]\w*)?)?\s*$')
 
+    last_line_no = 0
     for lineno, raw in enumerate(text.splitlines(), 1):
+        last_line_no = lineno
         line = raw.strip()
         if not line or line.startswith("'") or line.startswith("@"):
             continue
@@ -345,8 +347,9 @@ def parse_puml(path: Path) -> Model:
             continue
 
         if re_close.match(line):
-            if len(stack)>1:
-                stack.pop()
+            if len(stack) <= 1:
+                raise ParseError(lineno, raw)
+            stack.pop()
             matched = True
             continue
 
@@ -397,10 +400,12 @@ def parse_puml(path: Path) -> Model:
         if mo:
             matched = True
             st, ev, gd, ac = mo.groups()
-            if ev in ('entry','exit'):
-                continue
             if ac == "":
                 ac = None
+            if ev in ('entry','exit'):
+                if gd or ac or '/' in line:
+                    raise ParseError(lineno, raw)
+                continue
             m.ensure_node(st, stack[-1])
             if ev: m.events.add(ev)
             if gd: m.guards.add(gd)
@@ -410,6 +415,9 @@ def parse_puml(path: Path) -> Model:
 
         if not matched:
             raise ParseError(lineno, raw)
+
+    if len(stack) > 1:
+        raise ParseError(last_line_no, "missing } before end of file")
 
     return m
 
