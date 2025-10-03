@@ -122,25 +122,19 @@ pub mod statesurf {
                 State::State1 => {
                     match event {
                         Event::eventA => {
-            {
-              on_transition(self.state, State::State2, event);
-              self.hooks.on_exit(State::State1);
-              self.hooks.on_entry(State::State2);
-              self.state = State::State2;
-              return;
-            }
+            on_transition(self.state, State::State2, event);
+            self.hooks.on_exit(State::State1);
+            self.hooks.on_entry(State::State2);
+            self.state = State::State2;
+            return;
                         }
                         Event::init => {
-            {
-              on_transition(self.state, self.state, event);
-              return;
-            }
+            on_transition(self.state, self.state, event);
+            return;
                         }
                         Event::eventFoo => {
-            {
-              on_transition(self.state, self.state, event);
-              return;
-            }
+            on_transition(self.state, self.state, event);
+            return;
                         }
                         _ => {
                             return;
@@ -166,14 +160,12 @@ pub mod statesurf {
                 State::State3 => {
                     match event {
                         Event::eventC => {
-            {
-              on_transition(self.state, State::State4, event);
-              self.hooks.on_exit(State::State3);
-              self.hooks.action(self.state, event, ActionId::actionA);
-              self.hooks.on_entry(State::State4);
-              self.state = State::State4;
-              return;
-            }
+            on_transition(self.state, State::State4, event);
+            self.hooks.on_exit(State::State3);
+            self.hooks.action(self.state, event, ActionId::actionA);
+            self.hooks.on_entry(State::State4);
+            self.state = State::State4;
+            return;
                         }
                         _ => {
                             return;
@@ -200,10 +192,8 @@ pub mod statesurf {
                 State::State5 => {
                     match event {
                         Event::init => {
-            {
-              on_transition(self.state, self.state, event);
-              return;
-            }
+            on_transition(self.state, self.state, event);
+            return;
                         }
                         _ => {
                             return;

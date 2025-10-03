@@ -74,25 +74,19 @@ public:
       case State::State1: {
         switch (e) {
           case Event::eventA: {
-            {
-              on_transition(s_, State::State2, e);
-              impl_.on_exit(State::State1);
-              impl_.on_entry(State::State2);
-              s_ = State::State2;
-              return;
-            }
+            on_transition(s_, State::State2, e);
+            impl_.on_exit(State::State1);
+            impl_.on_entry(State::State2);
+            s_ = State::State2;
+            return;
           }
           case Event::init: {
-            {
-              on_transition(s_, s_, e);
-              return;
-            }
+            on_transition(s_, s_, e);
+            return;
           }
           case Event::eventFoo: {
-            {
-              on_transition(s_, s_, e);
-              return;
-            }
+            on_transition(s_, s_, e);
+            return;
           }
           default: return;
         }
@@ -115,14 +109,12 @@ public:
       case State::State3: {
         switch (e) {
           case Event::eventC: {
-            {
-              on_transition(s_, State::State4, e);
-              impl_.on_exit(State::State3);
-              impl_.action(s_, e, ActionId::actionA);
-              impl_.on_entry(State::State4);
-              s_ = State::State4;
-              return;
-            }
+            on_transition(s_, State::State4, e);
+            impl_.on_exit(State::State3);
+            impl_.action(s_, e, ActionId::actionA);
+            impl_.on_entry(State::State4);
+            s_ = State::State4;
+            return;
           }
           default: return;
         }
@@ -146,10 +138,8 @@ public:
       case State::State5: {
         switch (e) {
           case Event::init: {
-            {
-              on_transition(s_, s_, e);
-              return;
-            }
+            on_transition(s_, s_, e);
+            return;
           }
           default: return;
         }

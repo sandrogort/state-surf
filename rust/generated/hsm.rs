@@ -138,24 +138,20 @@ pub mod statesurf {
             }
                         }
                         Event::TERMINATE => {
-            {
-              on_transition(self.state, State::FinalPseudoState, event);
-              self.hooks.on_exit(State::s);
-              self.hooks.on_entry(State::FinalPseudoState);
-              self.state = State::FinalPseudoState;
-              self.terminated = true;
-              return;
-            }
+            on_transition(self.state, State::FinalPseudoState, event);
+            self.hooks.on_exit(State::s);
+            self.hooks.on_entry(State::FinalPseudoState);
+            self.state = State::FinalPseudoState;
+            self.terminated = true;
+            return;
                         }
                         Event::E => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         _ => {
                             return;
@@ -165,10 +161,8 @@ pub mod statesurf {
                 State::s1 => {
                     match event {
                         Event::I => {
-            {
-              on_transition(self.state, self.state, event);
-              return;
-            }
+            on_transition(self.state, self.state, event);
+            return;
                         }
                         Event::D => {
             if self.hooks.guard(self.state, event, GuardId::isFooFalse) {
@@ -182,66 +176,54 @@ pub mod statesurf {
             }
                         }
                         Event::A => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::B => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::C => {
-            {
-              on_transition(self.state, State::s211, event);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_entry(State::s2);
-              self.hooks.on_entry(State::s21);
-              self.hooks.on_entry(State::s211);
-              self.state = State::s211;
-              return;
-            }
+            on_transition(self.state, State::s211, event);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_entry(State::s2);
+            self.hooks.on_entry(State::s21);
+            self.hooks.on_entry(State::s211);
+            self.state = State::s211;
+            return;
                         }
                         Event::F => {
-            {
-              on_transition(self.state, State::s211, event);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_entry(State::s2);
-              self.hooks.on_entry(State::s21);
-              self.hooks.on_entry(State::s211);
-              self.state = State::s211;
-              return;
-            }
+            on_transition(self.state, State::s211, event);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_entry(State::s2);
+            self.hooks.on_entry(State::s21);
+            self.hooks.on_entry(State::s211);
+            self.state = State::s211;
+            return;
                         }
                         Event::TERMINATE => {
-            {
-              on_transition(self.state, State::FinalPseudoState, event);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_exit(State::s);
-              self.hooks.on_entry(State::FinalPseudoState);
-              self.state = State::FinalPseudoState;
-              self.terminated = true;
-              return;
-            }
+            on_transition(self.state, State::FinalPseudoState, event);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_exit(State::s);
+            self.hooks.on_entry(State::FinalPseudoState);
+            self.state = State::FinalPseudoState;
+            self.terminated = true;
+            return;
                         }
                         Event::E => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         _ => {
                             return;
@@ -251,26 +233,22 @@ pub mod statesurf {
                 State::s11 => {
                     match event {
                         Event::G => {
-            {
-              on_transition(self.state, State::s211, event);
-              self.hooks.on_exit(State::s11);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_entry(State::s2);
-              self.hooks.on_entry(State::s21);
-              self.hooks.on_entry(State::s211);
-              self.state = State::s211;
-              return;
-            }
+            on_transition(self.state, State::s211, event);
+            self.hooks.on_exit(State::s11);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_entry(State::s2);
+            self.hooks.on_entry(State::s21);
+            self.hooks.on_entry(State::s211);
+            self.state = State::s211;
+            return;
                         }
                         Event::H => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s11);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s11);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::D => {
             if self.hooks.guard(self.state, event, GuardId::isFooTrue) {
@@ -293,77 +271,63 @@ pub mod statesurf {
             }
                         }
                         Event::I => {
-            {
-              on_transition(self.state, self.state, event);
-              return;
-            }
+            on_transition(self.state, self.state, event);
+            return;
                         }
                         Event::A => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s11);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s11);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::B => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s11);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s11);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::C => {
-            {
-              on_transition(self.state, State::s211, event);
-              self.hooks.on_exit(State::s11);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_entry(State::s2);
-              self.hooks.on_entry(State::s21);
-              self.hooks.on_entry(State::s211);
-              self.state = State::s211;
-              return;
-            }
+            on_transition(self.state, State::s211, event);
+            self.hooks.on_exit(State::s11);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_entry(State::s2);
+            self.hooks.on_entry(State::s21);
+            self.hooks.on_entry(State::s211);
+            self.state = State::s211;
+            return;
                         }
                         Event::F => {
-            {
-              on_transition(self.state, State::s211, event);
-              self.hooks.on_exit(State::s11);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_entry(State::s2);
-              self.hooks.on_entry(State::s21);
-              self.hooks.on_entry(State::s211);
-              self.state = State::s211;
-              return;
-            }
+            on_transition(self.state, State::s211, event);
+            self.hooks.on_exit(State::s11);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_entry(State::s2);
+            self.hooks.on_entry(State::s21);
+            self.hooks.on_entry(State::s211);
+            self.state = State::s211;
+            return;
                         }
                         Event::TERMINATE => {
-            {
-              on_transition(self.state, State::FinalPseudoState, event);
-              self.hooks.on_exit(State::s11);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_exit(State::s);
-              self.hooks.on_entry(State::FinalPseudoState);
-              self.state = State::FinalPseudoState;
-              self.terminated = true;
-              return;
-            }
+            on_transition(self.state, State::FinalPseudoState, event);
+            self.hooks.on_exit(State::s11);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_exit(State::s);
+            self.hooks.on_entry(State::FinalPseudoState);
+            self.state = State::FinalPseudoState;
+            self.terminated = true;
+            return;
                         }
                         Event::E => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s11);
-              self.hooks.on_exit(State::s1);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s11);
+            self.hooks.on_exit(State::s1);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         _ => {
                             return;
@@ -385,45 +349,37 @@ pub mod statesurf {
             }
                         }
                         Event::C => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::F => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::TERMINATE => {
-            {
-              on_transition(self.state, State::FinalPseudoState, event);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_exit(State::s);
-              self.hooks.on_entry(State::FinalPseudoState);
-              self.state = State::FinalPseudoState;
-              self.terminated = true;
-              return;
-            }
+            on_transition(self.state, State::FinalPseudoState, event);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_exit(State::s);
+            self.hooks.on_entry(State::FinalPseudoState);
+            self.state = State::FinalPseudoState;
+            self.terminated = true;
+            return;
                         }
                         Event::E => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         _ => {
                             return;
@@ -433,34 +389,28 @@ pub mod statesurf {
                 State::s21 => {
                     match event {
                         Event::G => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::A => {
-            {
-              on_transition(self.state, State::s211, event);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_entry(State::s21);
-              self.hooks.on_entry(State::s211);
-              self.state = State::s211;
-              return;
-            }
+            on_transition(self.state, State::s211, event);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_entry(State::s21);
+            self.hooks.on_entry(State::s211);
+            self.state = State::s211;
+            return;
                         }
                         Event::B => {
-            {
-              on_transition(self.state, State::s211, event);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_entry(State::s211);
-              self.state = State::s211;
-              return;
-            }
+            on_transition(self.state, State::s211, event);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_entry(State::s211);
+            self.state = State::s211;
+            return;
                         }
                         Event::I => {
             if self.hooks.guard(self.state, event, GuardId::isFooFalse) {
@@ -475,49 +425,41 @@ pub mod statesurf {
             }
                         }
                         Event::C => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::F => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::TERMINATE => {
-            {
-              on_transition(self.state, State::FinalPseudoState, event);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_exit(State::s);
-              self.hooks.on_entry(State::FinalPseudoState);
-              self.state = State::FinalPseudoState;
-              self.terminated = true;
-              return;
-            }
+            on_transition(self.state, State::FinalPseudoState, event);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_exit(State::s);
+            self.hooks.on_entry(State::FinalPseudoState);
+            self.state = State::FinalPseudoState;
+            self.terminated = true;
+            return;
                         }
                         Event::E => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         _ => {
                             return;
@@ -527,57 +469,47 @@ pub mod statesurf {
                 State::s211 => {
                     match event {
                         Event::D => {
-            {
-              on_transition(self.state, State::s211, event);
-              self.hooks.on_exit(State::s211);
-              self.hooks.on_entry(State::s211);
-              self.state = State::s211;
-              return;
-            }
+            on_transition(self.state, State::s211, event);
+            self.hooks.on_exit(State::s211);
+            self.hooks.on_entry(State::s211);
+            self.state = State::s211;
+            return;
                         }
                         Event::H => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s211);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s211);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::G => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s211);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s211);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::A => {
-            {
-              on_transition(self.state, State::s211, event);
-              self.hooks.on_exit(State::s211);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_entry(State::s21);
-              self.hooks.on_entry(State::s211);
-              self.state = State::s211;
-              return;
-            }
+            on_transition(self.state, State::s211, event);
+            self.hooks.on_exit(State::s211);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_entry(State::s21);
+            self.hooks.on_entry(State::s211);
+            self.state = State::s211;
+            return;
                         }
                         Event::B => {
-            {
-              on_transition(self.state, State::s211, event);
-              self.hooks.on_exit(State::s211);
-              self.hooks.on_entry(State::s211);
-              self.state = State::s211;
-              return;
-            }
+            on_transition(self.state, State::s211, event);
+            self.hooks.on_exit(State::s211);
+            self.hooks.on_entry(State::s211);
+            self.state = State::s211;
+            return;
                         }
                         Event::I => {
             if self.hooks.guard(self.state, event, GuardId::isFooFalse) {
@@ -592,53 +524,45 @@ pub mod statesurf {
             }
                         }
                         Event::C => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s211);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s211);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::F => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s211);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s211);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         Event::TERMINATE => {
-            {
-              on_transition(self.state, State::FinalPseudoState, event);
-              self.hooks.on_exit(State::s211);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_exit(State::s);
-              self.hooks.on_entry(State::FinalPseudoState);
-              self.state = State::FinalPseudoState;
-              self.terminated = true;
-              return;
-            }
+            on_transition(self.state, State::FinalPseudoState, event);
+            self.hooks.on_exit(State::s211);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_exit(State::s);
+            self.hooks.on_entry(State::FinalPseudoState);
+            self.state = State::FinalPseudoState;
+            self.terminated = true;
+            return;
                         }
                         Event::E => {
-            {
-              on_transition(self.state, State::s11, event);
-              self.hooks.on_exit(State::s211);
-              self.hooks.on_exit(State::s21);
-              self.hooks.on_exit(State::s2);
-              self.hooks.on_entry(State::s1);
-              self.hooks.on_entry(State::s11);
-              self.state = State::s11;
-              return;
-            }
+            on_transition(self.state, State::s11, event);
+            self.hooks.on_exit(State::s211);
+            self.hooks.on_exit(State::s21);
+            self.hooks.on_exit(State::s2);
+            self.hooks.on_entry(State::s1);
+            self.hooks.on_entry(State::s11);
+            self.state = State::s11;
+            return;
                         }
                         _ => {
                             return;

@@ -609,10 +609,13 @@ def gen_code(m, machine_name: str, language: str) -> str:
                             spec.event_param_ref(),
                             spec.guard_literal(gid),
                         )
-                    body_lines.append(indent(6, f"{cond}{{" if cond else "{"))
+                        body_lines.append(indent(6, f"{cond}{{"))
+                        inner_indent = 7
+                    else:
+                        inner_indent = 6
                     body_lines.append(
                         indent(
-                            7,
+                            inner_indent,
                             spec.call_transition(
                                 spec.current_state_ref(),
                                 spec.current_state_ref(),
@@ -624,7 +627,7 @@ def gen_code(m, machine_name: str, language: str) -> str:
                         aid = action_map[t.action]
                         body_lines.append(
                             indent(
-                                7,
+                                inner_indent,
                                 spec.call_action(
                                     spec.current_state_ref(),
                                     spec.event_param_ref(),
@@ -632,11 +635,12 @@ def gen_code(m, machine_name: str, language: str) -> str:
                                 ),
                             )
                         )
-                    body_lines.append(indent(7, spec.return_statement()))
-                    if not t.guard:
+                    body_lines.append(indent(inner_indent, spec.return_statement()))
+                    if t.guard:
+                        body_lines.append(indent(6, "}"))
+                    else:
                         stop_after_transition = True
                         emit_case_epilogue = False
-                    body_lines.append(indent(6, "}"))
                     continue
 
                 if t.dst is None:
@@ -648,10 +652,14 @@ def gen_code(m, machine_name: str, language: str) -> str:
                             spec.event_param_ref(),
                             spec.guard_literal(gid),
                         )
-                    body_lines.append(indent(6, f"{cond}{{" if cond else "{"))
+                    if t.guard:
+                        body_lines.append(indent(6, f"{cond}{{"))
+                        inner_indent = 7
+                    else:
+                        inner_indent = 6
                     body_lines.append(
                         indent(
-                            7,
+                            inner_indent,
                             spec.call_transition(
                                 spec.current_state_ref(),
                                 pseudo_final_literal,
@@ -660,12 +668,12 @@ def gen_code(m, machine_name: str, language: str) -> str:
                         )
                     )
                     for ln in emit_exit_chain_for_state(s):
-                        body_lines.append(indent(7, ln))
+                        body_lines.append(indent(inner_indent, ln))
                     if t.action:
                         aid = action_map[t.action]
                         body_lines.append(
                             indent(
-                                7,
+                                inner_indent,
                                 spec.call_action(
                                     spec.current_state_ref(),
                                     spec.event_param_ref(),
@@ -673,14 +681,15 @@ def gen_code(m, machine_name: str, language: str) -> str:
                                 ),
                             )
                         )
-                    body_lines.append(indent(7, spec.call_entry(pseudo_final_literal)))
-                    body_lines.append(indent(7, spec.set_state(pseudo_final_literal)))
-                    body_lines.append(indent(7, spec.set_terminated_true()))
-                    body_lines.append(indent(7, spec.return_statement()))
-                    if not t.guard:
+                    body_lines.append(indent(inner_indent, spec.call_entry(pseudo_final_literal)))
+                    body_lines.append(indent(inner_indent, spec.set_state(pseudo_final_literal)))
+                    body_lines.append(indent(inner_indent, spec.set_terminated_true()))
+                    body_lines.append(indent(inner_indent, spec.return_statement()))
+                    if t.guard:
+                        body_lines.append(indent(6, "}"))
+                    else:
                         stop_after_transition = True
                         emit_case_epilogue = False
-                    body_lines.append(indent(6, "}"))
                     continue
 
                 dest_leaf = m.initial_leaf(t.dst) if m.is_composite(t.dst) else t.dst
@@ -751,10 +760,14 @@ def gen_code(m, machine_name: str, language: str) -> str:
                         spec.event_param_ref(),
                         spec.guard_literal(gid),
                     )
-                body_lines.append(indent(6, f"{cond}{{" if cond else "{"))
+                if t.guard:
+                    body_lines.append(indent(6, f"{cond}{{"))
+                    inner_indent = 7
+                else:
+                    inner_indent = 6
                 body_lines.append(
                     indent(
-                        7,
+                        inner_indent,
                         spec.call_transition(
                             spec.current_state_ref(),
                             spec.state_literal(state_ids_map[dest_leaf]),
@@ -769,7 +782,7 @@ def gen_code(m, machine_name: str, language: str) -> str:
                         aid = action_map[act]
                         body_lines.append(
                             indent(
-                                7,
+                                inner_indent,
                                 spec.call_action(
                                     spec.state_literal(node_id),
                                     spec.event_param_ref(),
@@ -777,12 +790,12 @@ def gen_code(m, machine_name: str, language: str) -> str:
                                 ),
                             )
                         )
-                    body_lines.append(indent(7, spec.call_exit(spec.state_literal(node_id))))
+                    body_lines.append(indent(inner_indent, spec.call_exit(spec.state_literal(node_id))))
                 if t.action:
                     aid = action_map[t.action]
                     body_lines.append(
                         indent(
-                            7,
+                            inner_indent,
                             spec.call_action(
                                 spec.current_state_ref(),
                                 spec.event_param_ref(),
@@ -792,12 +805,12 @@ def gen_code(m, machine_name: str, language: str) -> str:
                     )
                 if exit_common and source_node is not None and source_node.name != "__root__":
                     source_id = state_ids_map[source_node.name]
-                    body_lines.append(indent(7, spec.call_entry(spec.state_literal(source_id))))
+                    body_lines.append(indent(inner_indent, spec.call_entry(spec.state_literal(source_id))))
                     for act in source_node.entry_actions:
                         aid = action_map[act]
                         body_lines.append(
                             indent(
-                                7,
+                                inner_indent,
                                 spec.call_action(
                                     spec.state_literal(source_id),
                                     spec.event_param_ref(),
@@ -808,12 +821,12 @@ def gen_code(m, machine_name: str, language: str) -> str:
                 for en in entry_nodes:
                     node = m.nodes[en]
                     node_id = state_ids_map[node.name]
-                    body_lines.append(indent(7, spec.call_entry(spec.state_literal(node_id))))
+                    body_lines.append(indent(inner_indent, spec.call_entry(spec.state_literal(node_id))))
                     for act in node.entry_actions:
                         aid = action_map[act]
                         body_lines.append(
                             indent(
-                                7,
+                                inner_indent,
                                 spec.call_action(
                                     spec.state_literal(node_id),
                                     spec.event_param_ref(),
@@ -821,12 +834,13 @@ def gen_code(m, machine_name: str, language: str) -> str:
                                 ),
                             )
                         )
-                body_lines.append(indent(7, spec.set_state(spec.state_literal(state_ids_map[dest_leaf]))))
-                body_lines.append(indent(7, spec.return_statement()))
-                if not t.guard:
+                body_lines.append(indent(inner_indent, spec.set_state(spec.state_literal(state_ids_map[dest_leaf]))))
+                body_lines.append(indent(inner_indent, spec.return_statement()))
+                if t.guard:
+                    body_lines.append(indent(6, "}"))
+                else:
                     stop_after_transition = True
                     emit_case_epilogue = False
-                body_lines.append(indent(6, "}"))
             epilogue = spec.case_epilogue()
             if emit_case_epilogue and epilogue:
                 body_lines.append(indent(6, epilogue))
