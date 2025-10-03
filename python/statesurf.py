@@ -5,8 +5,132 @@ from typing import Dict, List, Optional, Tuple, Set
 
 from jinja2 import Environment, FileSystemLoader
 
-PSEUDO_INITIAL_STATE = "InitialPseudoState"
-PSEUDO_FINAL_STATE = "FinalPseudoState"
+
+class LanguageSpec:
+    def __init__(self, name: str, template: str, pseudo_initial_state: str, pseudo_final_state: str):
+        self.name = name
+        self.template = template
+        self.pseudo_initial_state = pseudo_initial_state
+        self.pseudo_final_state = pseudo_final_state
+
+    def state_literal(self, name: str) -> str:
+        raise NotImplementedError
+
+    def event_literal(self, name: str) -> str:
+        raise NotImplementedError
+
+    def action_literal(self, name: str) -> str:
+        raise NotImplementedError
+
+    def guard_literal(self, name: str) -> str:
+        raise NotImplementedError
+
+    def default_event_literal(self) -> str:
+        raise NotImplementedError
+
+    def current_state_ref(self) -> str:
+        raise NotImplementedError
+
+    def event_param_ref(self) -> str:
+        raise NotImplementedError
+
+    def call_transition(self, src: str, dst: str, event: str) -> str:
+        raise NotImplementedError
+
+    def call_entry(self, state: str) -> str:
+        raise NotImplementedError
+
+    def call_exit(self, state: str) -> str:
+        raise NotImplementedError
+
+    def call_action(self, state: str, event: str, action: str) -> str:
+        raise NotImplementedError
+
+    def guard_condition(self, state: str, event: str, guard: str) -> str:
+        raise NotImplementedError
+
+    def set_state(self, state: str) -> str:
+        raise NotImplementedError
+
+    def set_started_false(self) -> str:
+        raise NotImplementedError
+
+    def set_terminated_true(self) -> str:
+        raise NotImplementedError
+
+    def return_statement(self) -> str:
+        raise NotImplementedError
+
+
+class CppLanguageSpec(LanguageSpec):
+    def __init__(self):
+        super().__init__(
+            name="cpp",
+            template="cpp/machine.j2",
+            pseudo_initial_state="InitialPseudoState",
+            pseudo_final_state="FinalPseudoState",
+        )
+        self._impl_ref = "impl_"
+        self._current_state = "s_"
+        self._event_param = "e"
+        self._started_var = "started_"
+        self._terminated_var = "terminated_"
+
+    def _state_scope(self, name: str) -> str:
+        return f"State::{name}"
+
+    def state_literal(self, name: str) -> str:
+        return self._state_scope(name)
+
+    def event_literal(self, name: str) -> str:
+        return f"Event::{name}"
+
+    def action_literal(self, name: str) -> str:
+        return f"ActionId::{name}"
+
+    def guard_literal(self, name: str) -> str:
+        return f"GuardId::{name}"
+
+    def default_event_literal(self) -> str:
+        return "Event{}"
+
+    def current_state_ref(self) -> str:
+        return self._current_state
+
+    def event_param_ref(self) -> str:
+        return self._event_param
+
+    def call_transition(self, src: str, dst: str, event: str) -> str:
+        return f"on_transition({src}, {dst}, {event});"
+
+    def call_entry(self, state: str) -> str:
+        return f"{self._impl_ref}.on_entry({state});"
+
+    def call_exit(self, state: str) -> str:
+        return f"{self._impl_ref}.on_exit({state});"
+
+    def call_action(self, state: str, event: str, action: str) -> str:
+        return f"{self._impl_ref}.action({state}, {event}, {action});"
+
+    def guard_condition(self, state: str, event: str, guard: str) -> str:
+        return f"if ({self._impl_ref}.guard({state}, {event}, {guard})) "
+
+    def set_state(self, state: str) -> str:
+        return f"{self._current_state} = {state};"
+
+    def set_started_false(self) -> str:
+        return f"{self._started_var} = false;"
+
+    def set_terminated_true(self) -> str:
+        return f"{self._terminated_var} = true;"
+
+    def return_statement(self) -> str:
+        return "return;"
+
+
+LANGUAGE_SPECS = {
+    "cpp": CppLanguageSpec(),
+}
 
 class Node:
     def __init__(self, name: str, parent: Optional['Node']):
@@ -211,7 +335,12 @@ def build_transitions_by_state(m: Model):
         result[s] = evmap
     return result
 
-def gen_header(m, machine_name: str) -> str:
+def gen_code(m, machine_name: str, language: str) -> str:
+    if language not in LANGUAGE_SPECS:
+        raise ValueError(
+            f"Unsupported language '{language}'. Available: {', '.join(sorted(LANGUAGE_SPECS.keys()))}"
+        )
+    spec = LANGUAGE_SPECS[language]
     def sanitize_id(x: str) -> str:
         return re.sub(r'[^A-Za-z0-9_]', '_', x)
 
@@ -282,8 +411,14 @@ def gen_header(m, machine_name: str) -> str:
             node_id = state_ids_map[n.name]
             for act in n.exit_actions:
                 aid = action_map[act]
-                lines.append("impl_.action(State::{}, e, ActionId::{});".format(node_id, aid))
-            lines.append("impl_.on_exit(State::{});".format(node_id))
+                lines.append(
+                    spec.call_action(
+                        spec.state_literal(node_id),
+                        spec.event_param_ref(),
+                        spec.action_literal(aid),
+                    )
+                )
+            lines.append(spec.call_exit(spec.state_literal(node_id)))
             n = n.parent
         return lines
 
@@ -328,15 +463,27 @@ def gen_header(m, machine_name: str) -> str:
                 if initial_action and first_child.get(parent.name) == node.name:
                     aid = action_map[initial_action]
                     action_state = node.name if parent.name == "__root__" else parent.name
-                    start_lines.append("impl_.action(State::{}, Event{{}}, ActionId::{});".format(state_ids_map[action_state], aid))
-            start_lines.append("impl_.on_entry(State::{});".format(state_ids_map[node.name]))
+                    start_lines.append(
+                        spec.call_action(
+                            spec.state_literal(state_ids_map[action_state]),
+                            spec.default_event_literal(),
+                            spec.action_literal(aid),
+                        )
+                    )
+            start_lines.append(spec.call_entry(spec.state_literal(state_ids_map[node.name])))
             for act in node.entry_actions:
                 aid = action_map[act]
-                start_lines.append("impl_.action(State::{}, Event{{}}, ActionId::{});".format(state_ids_map[node.name], aid))
+                start_lines.append(
+                    spec.call_action(
+                        spec.state_literal(state_ids_map[node.name]),
+                        spec.default_event_literal(),
+                        spec.action_literal(aid),
+                    )
+                )
 
     reset_lines: List[str] = [
-        "started_ = false;",
-        "s_ = State::{};".format(PSEUDO_INITIAL_STATE)
+        spec.set_started_false(),
+        spec.set_state(spec.state_literal(spec.pseudo_initial_state)),
     ]
 
     state_cases: List[Dict[str, object]] = []
@@ -351,13 +498,35 @@ def gen_header(m, machine_name: str) -> str:
                     cond = ""
                     if t.guard:
                         gid = guard_map[t.guard]
-                        cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(gid)
-                    body_lines.append(indent(6, "{}{{".format(cond) if cond else "{"))
-                    body_lines.append(indent(7, "on_transition(s_, s_, e);"))
+                        cond = spec.guard_condition(
+                            spec.current_state_ref(),
+                            spec.event_param_ref(),
+                            spec.guard_literal(gid),
+                        )
+                    body_lines.append(indent(6, f"{cond}{{" if cond else "{"))
+                    body_lines.append(
+                        indent(
+                            7,
+                            spec.call_transition(
+                                spec.current_state_ref(),
+                                spec.current_state_ref(),
+                                spec.event_param_ref(),
+                            ),
+                        )
+                    )
                     if t.action:
                         aid = action_map[t.action]
-                        body_lines.append(indent(7, "impl_.action(s_, e, ActionId::{});".format(aid)))
-                    body_lines.append(indent(7, "return;"))
+                        body_lines.append(
+                            indent(
+                                7,
+                                spec.call_action(
+                                    spec.current_state_ref(),
+                                    spec.event_param_ref(),
+                                    spec.action_literal(aid),
+                                ),
+                            )
+                        )
+                    body_lines.append(indent(7, spec.return_statement()))
                     body_lines.append(indent(6, "}"))
                     continue
 
@@ -365,18 +534,40 @@ def gen_header(m, machine_name: str) -> str:
                     cond = ""
                     if t.guard:
                         gid = guard_map[t.guard]
-                        cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(gid)
-                    body_lines.append(indent(6, "{}{{".format(cond) if cond else "{"))
-                    body_lines.append(indent(7, "on_transition(s_, State::{}, e);".format(PSEUDO_FINAL_STATE)))
+                        cond = spec.guard_condition(
+                            spec.current_state_ref(),
+                            spec.event_param_ref(),
+                            spec.guard_literal(gid),
+                        )
+                    body_lines.append(indent(6, f"{cond}{{" if cond else "{"))
+                    body_lines.append(
+                        indent(
+                            7,
+                            spec.call_transition(
+                                spec.current_state_ref(),
+                                spec.state_literal(spec.pseudo_final_state),
+                                spec.event_param_ref(),
+                            ),
+                        )
+                    )
                     for ln in emit_exit_chain_for_state(s):
                         body_lines.append(indent(7, ln))
                     if t.action:
                         aid = action_map[t.action]
-                        body_lines.append(indent(7, "impl_.action(s_, e, ActionId::{});".format(aid)))
-                    body_lines.append(indent(7, "impl_.on_entry(State::{});".format(PSEUDO_FINAL_STATE)))
-                    body_lines.append(indent(7, "s_ = State::{};".format(PSEUDO_FINAL_STATE)))
-                    body_lines.append(indent(7, "terminated_ = true;"))
-                    body_lines.append(indent(7, "return;"))
+                        body_lines.append(
+                            indent(
+                                7,
+                                spec.call_action(
+                                    spec.current_state_ref(),
+                                    spec.event_param_ref(),
+                                    spec.action_literal(aid),
+                                ),
+                            )
+                        )
+                    body_lines.append(indent(7, spec.call_entry(spec.state_literal(spec.pseudo_final_state))))
+                    body_lines.append(indent(7, spec.set_state(spec.state_literal(spec.pseudo_final_state))))
+                    body_lines.append(indent(7, spec.set_terminated_true()))
+                    body_lines.append(indent(7, spec.return_statement()))
                     body_lines.append(indent(6, "}"))
                     continue
 
@@ -417,36 +608,85 @@ def gen_header(m, machine_name: str) -> str:
                 cond = ""
                 if t.guard:
                     gid = guard_map[t.guard]
-                    cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(gid)
-                body_lines.append(indent(6, "{}{{".format(cond) if cond else "{"))
-                body_lines.append(indent(7, "on_transition(s_, State::{}, e);".format(state_ids_map[dest_leaf])))
+                    cond = spec.guard_condition(
+                        spec.current_state_ref(),
+                        spec.event_param_ref(),
+                        spec.guard_literal(gid),
+                    )
+                body_lines.append(indent(6, f"{cond}{{" if cond else "{"))
+                body_lines.append(
+                    indent(
+                        7,
+                        spec.call_transition(
+                            spec.current_state_ref(),
+                            spec.state_literal(state_ids_map[dest_leaf]),
+                            spec.event_param_ref(),
+                        ),
+                    )
+                )
                 for en in exit_nodes:
                     node = m.nodes[en]
                     node_id = state_ids_map[node.name]
                     for act in node.exit_actions:
                         aid = action_map[act]
-                        body_lines.append(indent(7, "impl_.action(State::{}, e, ActionId::{});".format(node_id, aid)))
-                    body_lines.append(indent(7, "impl_.on_exit(State::{});".format(node_id)))
+                        body_lines.append(
+                            indent(
+                                7,
+                                spec.call_action(
+                                    spec.state_literal(node_id),
+                                    spec.event_param_ref(),
+                                    spec.action_literal(aid),
+                                ),
+                            )
+                        )
+                    body_lines.append(indent(7, spec.call_exit(spec.state_literal(node_id))))
                 if t.action:
                     aid = action_map[t.action]
-                    body_lines.append(indent(7, "impl_.action(s_, e, ActionId::{});".format(aid)))
+                    body_lines.append(
+                        indent(
+                            7,
+                            spec.call_action(
+                                spec.current_state_ref(),
+                                spec.event_param_ref(),
+                                spec.action_literal(aid),
+                            ),
+                        )
+                    )
                 if exit_common and source_node is not None and source_node.name != "__root__":
                     source_id = state_ids_map[source_node.name]
-                    body_lines.append(indent(7, "impl_.on_entry(State::{});".format(source_id)))
+                    body_lines.append(indent(7, spec.call_entry(spec.state_literal(source_id))))
                     for act in source_node.entry_actions:
                         aid = action_map[act]
-                        body_lines.append(indent(7, "impl_.action(State::{}, e, ActionId::{});".format(source_id, aid)))
+                        body_lines.append(
+                            indent(
+                                7,
+                                spec.call_action(
+                                    spec.state_literal(source_id),
+                                    spec.event_param_ref(),
+                                    spec.action_literal(aid),
+                                ),
+                            )
+                        )
                 for en in entry_nodes:
                     node = m.nodes[en]
                     node_id = state_ids_map[node.name]
-                    body_lines.append(indent(7, "impl_.on_entry(State::{});".format(node_id)))
+                    body_lines.append(indent(7, spec.call_entry(spec.state_literal(node_id))))
                     for act in node.entry_actions:
                         aid = action_map[act]
-                        body_lines.append(indent(7, "impl_.action(State::{}, e, ActionId::{});".format(node_id, aid)))
-                body_lines.append(indent(7, "s_ = State::{};".format(state_ids_map[dest_leaf])))
-                body_lines.append(indent(7, "return;"))
+                        body_lines.append(
+                            indent(
+                                7,
+                                spec.call_action(
+                                    spec.state_literal(node_id),
+                                    spec.event_param_ref(),
+                                    spec.action_literal(aid),
+                                ),
+                            )
+                        )
+                body_lines.append(indent(7, spec.set_state(spec.state_literal(state_ids_map[dest_leaf]))))
+                body_lines.append(indent(7, spec.return_statement()))
                 body_lines.append(indent(6, "}"))
-            body_lines.append(indent(6, "return;"))
+            body_lines.append(indent(6, spec.return_statement()))
             event_blocks.append({
                 "name": event_ids_map[ev],
                 "lines": body_lines
@@ -458,7 +698,7 @@ def gen_header(m, machine_name: str) -> str:
 
     template_dir = Path(__file__).parent / "templates"
     env = Environment(loader=FileSystemLoader(str(template_dir)), trim_blocks=True, lstrip_blocks=True)
-    template = env.get_template("cpp_header.j2")
+    template = env.get_template(spec.template)
 
     code = template.render(
         machine_name=machine_name,
@@ -470,14 +710,19 @@ def gen_header(m, machine_name: str) -> str:
         state_cases=state_cases,
         start_lines=start_lines,
         start_target_state=start_target_state,
-        pseudo_initial=PSEUDO_INITIAL_STATE,
-        pseudo_final=PSEUDO_FINAL_STATE
+        pseudo_initial=spec.pseudo_initial_state,
+        pseudo_final=spec.pseudo_final_state,
     )
     return code
 
-def generate(input_path: Path, output_path: Path, machine_name: str = "StateSurfMachine") -> None:
+def generate(
+    input_path: Path,
+    output_path: Path,
+    machine_name: str = "StateSurfMachine",
+    language: str = "cpp",
+) -> None:
     model = parse_puml(input_path)
-    code = gen_header(model, machine_name)
+    code = gen_code(model, machine_name, language)
     output_path.write_text(code, encoding="utf-8")
 
 def main(argv):
@@ -488,11 +733,12 @@ def main(argv):
     g.add_argument("-i", "--input", required=True)
     g.add_argument("-o", "--output", required=True)
     g.add_argument("-n", "--name", default="StateSurfMachine")
+    g.add_argument("-l", "--language", default="cpp")
     v = sub.add_parser("validate")
     v.add_argument("-i", "--input", required=True)
     args = ap.parse_args(argv)
     if args.cmd == "generate":
-        generate(Path(args.input), Path(args.output), args.name)
+        generate(Path(args.input), Path(args.output), args.name, args.language.lower())
         return 0
     elif args.cmd == "validate":
         parse_puml(Path(args.input))

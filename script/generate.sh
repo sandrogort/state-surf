@@ -12,5 +12,5 @@ mkdir -p "${OUTPUT_DIR}"
 shopt -s nullglob
 for puml in "${PLANTUML_DIR}"/*.puml; do
   name="$(basename "${puml}" .puml)"
-  python3 "${GENERATOR}" generate -i "${puml}" -o "${OUTPUT_DIR}/${name}.hpp"
+  python3 "${GENERATOR}" generate -i "${puml}" -o "${OUTPUT_DIR}/${name}.hpp" -l cpp
 done
