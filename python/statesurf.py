@@ -5,6 +5,9 @@ from typing import Dict, List, Optional, Tuple, Set
 
 from jinja2 import Environment, FileSystemLoader
 
+PSEUDO_INITIAL_STATE = "InitialPseudoState"
+PSEUDO_FINAL_STATE = "FinalPseudoState"
+
 class Node:
     def __init__(self, name: str, parent: Optional['Node']):
         self.name = name
@@ -298,13 +301,15 @@ def gen_header(m, machine_name: str) -> str:
         acc.reverse()
         return acc
 
-    reset_lines: List[str] = []
+    start_lines: List[str] = []
+    start_target_state: Optional[str] = None
 
     root_init = m.root.initial_target
     if root_init is None and states:
         root_init = states[0]
     if root_init:
         leaf = m.initial_leaf(root_init)
+        start_target_state = state_ids_map[leaf]
         path: List[Node] = []
         n = m.nodes[leaf]
         while n and n.name != "__root__":
@@ -323,12 +328,16 @@ def gen_header(m, machine_name: str) -> str:
                 if initial_action and first_child.get(parent.name) == node.name:
                     aid = action_map[initial_action]
                     action_state = node.name if parent.name == "__root__" else parent.name
-                    reset_lines.append("impl_.action(State::{}, Event{{}}, ActionId::{});".format(state_ids_map[action_state], aid))
-            reset_lines.append("impl_.on_entry(State::{});".format(state_ids_map[node.name]))
+                    start_lines.append("impl_.action(State::{}, Event{{}}, ActionId::{});".format(state_ids_map[action_state], aid))
+            start_lines.append("impl_.on_entry(State::{});".format(state_ids_map[node.name]))
             for act in node.entry_actions:
                 aid = action_map[act]
-                reset_lines.append("impl_.action(State::{}, Event{{}}, ActionId::{});".format(state_ids_map[node.name], aid))
-        reset_lines.append("s_ = State::{};".format(state_ids_map[leaf]))
+                start_lines.append("impl_.action(State::{}, Event{{}}, ActionId::{});".format(state_ids_map[node.name], aid))
+
+    reset_lines: List[str] = [
+        "started_ = false;",
+        "s_ = State::{};".format(PSEUDO_INITIAL_STATE)
+    ]
 
     state_cases: List[Dict[str, object]] = []
 
@@ -358,12 +367,14 @@ def gen_header(m, machine_name: str) -> str:
                         gid = guard_map[t.guard]
                         cond = "if (impl_.guard(s_, e, GuardId::{})) ".format(gid)
                     body_lines.append(indent(6, "{}{{".format(cond) if cond else "{"))
-                    body_lines.append(indent(7, "on_transition(s_, s_, e);"))
+                    body_lines.append(indent(7, "on_transition(s_, State::{}, e);".format(PSEUDO_FINAL_STATE)))
                     for ln in emit_exit_chain_for_state(s):
                         body_lines.append(indent(7, ln))
                     if t.action:
                         aid = action_map[t.action]
                         body_lines.append(indent(7, "impl_.action(s_, e, ActionId::{});".format(aid)))
+                    body_lines.append(indent(7, "impl_.on_entry(State::{});".format(PSEUDO_FINAL_STATE)))
+                    body_lines.append(indent(7, "s_ = State::{};".format(PSEUDO_FINAL_STATE)))
                     body_lines.append(indent(7, "terminated_ = true;"))
                     body_lines.append(indent(7, "return;"))
                     body_lines.append(indent(6, "}"))
@@ -456,7 +467,11 @@ def gen_header(m, machine_name: str) -> str:
         guard_ids=guard_ids if guard_ids else ["__None"],
         action_ids=action_ids if action_ids else ["__None"],
         reset_lines=reset_lines,
-        state_cases=state_cases
+        state_cases=state_cases,
+        start_lines=start_lines,
+        start_target_state=start_target_state,
+        pseudo_initial=PSEUDO_INITIAL_STATE,
+        pseudo_final=PSEUDO_FINAL_STATE
     )
     return code
 

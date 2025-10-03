@@ -3,11 +3,13 @@
 namespace statesurf {
 
 enum class State {
+  InitialPseudoState,
   State1,
   State2,
   State3,
   State4,
-  State5
+  State5,
+  FinalPseudoState
 };
 
 enum class Event {
@@ -46,8 +48,16 @@ public:
 
   void reset() {
     terminated_ = false;
-    impl_.on_entry(State::State1);
+    started_ = false;
+    s_ = State::InitialPseudoState;
+  }
+
+  void start() {
+    if (terminated_ || started_) return;
+    started_ = true;
+    on_transition(State::InitialPseudoState, State::State1, Event{});
     s_ = State::State1;
+    impl_.on_entry(State::State1);
   }
 
   State state() const { return s_; }
@@ -55,6 +65,10 @@ public:
 
   void dispatch(Event e) {
     if (terminated_) return;
+    if (!started_) {
+      start();
+      if (!started_) return;
+    }
     on_event(s_, e);
     switch (s_) {
       case State::State1: {
@@ -145,12 +159,19 @@ public:
           default: return;
         }
       }
+      case State::InitialPseudoState: {
+        return;
+      }
+      case State::FinalPseudoState: {
+        return;
+      }
     }
   }
 
 private:
   IHooks& impl_;
   State s_;
+  bool started_ = false;
   bool terminated_ = false;
 };
 

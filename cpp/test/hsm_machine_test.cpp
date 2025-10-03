@@ -56,7 +56,7 @@ TEST(StateSurfMachine, DrivesThroughLifecycle) {
   RecordingHooks hooks;
   statesurf::StateSurfMachine machine(hooks);
 
-  EXPECT_EQ(machine.state(), statesurf::State::StateSurfInitial);
+  EXPECT_EQ(machine.state(), statesurf::State::InitialPseudoState);
   EXPECT_FALSE(machine.terminated());
   EXPECT_TRUE(hooks.entries.empty());
   EXPECT_TRUE(hooks.actions.empty());
@@ -185,5 +185,5 @@ TEST(StateSurfMachine, DrivesThroughLifecycle) {
 
   machine.dispatch(statesurf::Event::TERMINATE);
   EXPECT_TRUE(machine.terminated());
-  EXPECT_EQ(machine.state(), statesurf::State::StateSurfFinal);
+  EXPECT_EQ(machine.state(), statesurf::State::FinalPseudoState);
 }

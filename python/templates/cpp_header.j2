@@ -3,9 +3,11 @@
 namespace statesurf {
 
 enum class State {
+  {{ pseudo_initial }},
 {% for state in states %}
-  {{ state }}{{ "," if not loop.last else "" }}
+  {{ state }},
 {% endfor %}
+  {{ pseudo_final }}
 };
 
 enum class Event {
@@ -52,11 +54,32 @@ public:
 {% endif %}
   }
 
+  void start() {
+    if (terminated_ || started_) return;
+    started_ = true;
+{% if start_target_state %}
+    on_transition(State::{{ pseudo_initial }}, State::{{ start_target_state }}, Event{});
+    s_ = State::{{ start_target_state }};
+{% for line in start_lines %}
+    {{ line }}
+{% endfor %}
+{% else %}
+    on_transition(State::{{ pseudo_initial }}, State::{{ pseudo_final }}, Event{});
+    impl_.on_entry(State::{{ pseudo_final }});
+    s_ = State::{{ pseudo_final }};
+    terminated_ = true;
+{% endif %}
+  }
+
   State state() const { return s_; }
   bool terminated() const { return terminated_; }
 
   void dispatch(Event e) {
     if (terminated_) return;
+    if (!started_) {
+      start();
+      if (!started_) return;
+    }
     on_event(s_, e);
     switch (s_) {
 {% for state in state_cases %}
@@ -77,12 +100,19 @@ public:
 {% endif %}
       }
 {% endfor %}
+      case State::{{ pseudo_initial }}: {
+        return;
+      }
+      case State::{{ pseudo_final }}: {
+        return;
+      }
     }
   }
 
 private:
   IHooks& impl_;
   State s_;
+  bool started_ = false;
   bool terminated_ = false;
 };
 
