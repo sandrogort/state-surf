@@ -169,11 +169,6 @@ pub mod statesurf {
               on_transition(self.state, self.state, event);
               return;
             }
-            if self.hooks.guard(self.state, event, GuardId::isFooTrue) {
-              on_transition(self.state, self.state, event);
-              self.hooks.action(self.state, event, ActionId::setFooFalse);
-              return;
-            }
                         }
                         Event::D => {
             if self.hooks.guard(self.state, event, GuardId::isFooFalse) {
@@ -300,11 +295,6 @@ pub mod statesurf {
                         Event::I => {
             {
               on_transition(self.state, self.state, event);
-              return;
-            }
-            if self.hooks.guard(self.state, event, GuardId::isFooTrue) {
-              on_transition(self.state, self.state, event);
-              self.hooks.action(self.state, event, ActionId::setFooFalse);
               return;
             }
                         }

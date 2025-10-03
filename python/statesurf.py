@@ -595,7 +595,11 @@ def gen_code(m, machine_name: str, language: str) -> str:
         for ev, transitions in evmap.items():
             event_label = spec.event_literal(event_ids_map[ev])
             body_lines: List[str] = []
+            stop_after_transition = False
+            emit_case_epilogue = True
             for t in transitions:
+                if stop_after_transition:
+                    break
                 if t.internal:
                     cond = ""
                     if t.guard:
@@ -629,6 +633,9 @@ def gen_code(m, machine_name: str, language: str) -> str:
                             )
                         )
                     body_lines.append(indent(7, spec.return_statement()))
+                    if not t.guard:
+                        stop_after_transition = True
+                        emit_case_epilogue = False
                     body_lines.append(indent(6, "}"))
                     continue
 
@@ -670,6 +677,9 @@ def gen_code(m, machine_name: str, language: str) -> str:
                     body_lines.append(indent(7, spec.set_state(pseudo_final_literal)))
                     body_lines.append(indent(7, spec.set_terminated_true()))
                     body_lines.append(indent(7, spec.return_statement()))
+                    if not t.guard:
+                        stop_after_transition = True
+                        emit_case_epilogue = False
                     body_lines.append(indent(6, "}"))
                     continue
 
@@ -813,9 +823,12 @@ def gen_code(m, machine_name: str, language: str) -> str:
                         )
                 body_lines.append(indent(7, spec.set_state(spec.state_literal(state_ids_map[dest_leaf]))))
                 body_lines.append(indent(7, spec.return_statement()))
+                if not t.guard:
+                    stop_after_transition = True
+                    emit_case_epilogue = False
                 body_lines.append(indent(6, "}"))
             epilogue = spec.case_epilogue()
-            if epilogue:
+            if emit_case_epilogue and epilogue:
                 body_lines.append(indent(6, epilogue))
             event_blocks.append(
                 {

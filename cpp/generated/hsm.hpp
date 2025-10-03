@@ -99,7 +99,6 @@ public:
               terminated_ = true;
               return;
             }
-            return;
           }
           case Event::E: {
             {
@@ -110,7 +109,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           default: return;
         }
@@ -122,12 +120,6 @@ public:
               on_transition(s_, s_, e);
               return;
             }
-            if (impl_.guard(s_, e, GuardId::isFooTrue)) {
-              on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::setFooFalse);
-              return;
-            }
-            return;
           }
           case Event::D: {
             if (impl_.guard(s_, e, GuardId::isFooFalse)) {
@@ -150,7 +142,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::B: {
             {
@@ -160,7 +151,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::C: {
             {
@@ -172,7 +162,6 @@ public:
               s_ = State::s211;
               return;
             }
-            return;
           }
           case Event::F: {
             {
@@ -184,7 +173,6 @@ public:
               s_ = State::s211;
               return;
             }
-            return;
           }
           case Event::TERMINATE: {
             {
@@ -196,7 +184,6 @@ public:
               terminated_ = true;
               return;
             }
-            return;
           }
           case Event::E: {
             {
@@ -207,7 +194,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           default: return;
         }
@@ -225,7 +211,6 @@ public:
               s_ = State::s211;
               return;
             }
-            return;
           }
           case Event::H: {
             {
@@ -236,7 +221,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::D: {
             if (impl_.guard(s_, e, GuardId::isFooTrue)) {
@@ -264,12 +248,6 @@ public:
               on_transition(s_, s_, e);
               return;
             }
-            if (impl_.guard(s_, e, GuardId::isFooTrue)) {
-              on_transition(s_, s_, e);
-              impl_.action(s_, e, ActionId::setFooFalse);
-              return;
-            }
-            return;
           }
           case Event::A: {
             {
@@ -281,7 +259,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::B: {
             {
@@ -291,7 +268,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::C: {
             {
@@ -304,7 +280,6 @@ public:
               s_ = State::s211;
               return;
             }
-            return;
           }
           case Event::F: {
             {
@@ -317,7 +292,6 @@ public:
               s_ = State::s211;
               return;
             }
-            return;
           }
           case Event::TERMINATE: {
             {
@@ -330,7 +304,6 @@ public:
               terminated_ = true;
               return;
             }
-            return;
           }
           case Event::E: {
             {
@@ -342,7 +315,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           default: return;
         }
@@ -371,7 +343,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::F: {
             {
@@ -382,7 +353,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::TERMINATE: {
             {
@@ -394,7 +364,6 @@ public:
               terminated_ = true;
               return;
             }
-            return;
           }
           case Event::E: {
             {
@@ -405,7 +374,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           default: return;
         }
@@ -422,7 +390,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::A: {
             {
@@ -433,7 +400,6 @@ public:
               s_ = State::s211;
               return;
             }
-            return;
           }
           case Event::B: {
             {
@@ -443,7 +409,6 @@ public:
               s_ = State::s211;
               return;
             }
-            return;
           }
           case Event::I: {
             if (impl_.guard(s_, e, GuardId::isFooFalse)) {
@@ -468,7 +433,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::F: {
             {
@@ -480,7 +444,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::TERMINATE: {
             {
@@ -493,7 +456,6 @@ public:
               terminated_ = true;
               return;
             }
-            return;
           }
           case Event::E: {
             {
@@ -505,7 +467,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           default: return;
         }
@@ -520,7 +481,6 @@ public:
               s_ = State::s211;
               return;
             }
-            return;
           }
           case Event::H: {
             {
@@ -533,7 +493,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::G: {
             {
@@ -546,7 +505,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::A: {
             {
@@ -558,7 +516,6 @@ public:
               s_ = State::s211;
               return;
             }
-            return;
           }
           case Event::B: {
             {
@@ -568,7 +525,6 @@ public:
               s_ = State::s211;
               return;
             }
-            return;
           }
           case Event::I: {
             if (impl_.guard(s_, e, GuardId::isFooFalse)) {
@@ -594,7 +550,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::F: {
             {
@@ -607,7 +562,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           case Event::TERMINATE: {
             {
@@ -621,7 +575,6 @@ public:
               terminated_ = true;
               return;
             }
-            return;
           }
           case Event::E: {
             {
@@ -634,7 +587,6 @@ public:
               s_ = State::s11;
               return;
             }
-            return;
           }
           default: return;
         }

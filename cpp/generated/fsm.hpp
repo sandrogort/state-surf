@@ -81,21 +81,18 @@ public:
               s_ = State::State2;
               return;
             }
-            return;
           }
           case Event::init: {
             {
               on_transition(s_, s_, e);
               return;
             }
-            return;
           }
           case Event::eventFoo: {
             {
               on_transition(s_, s_, e);
               return;
             }
-            return;
           }
           default: return;
         }
@@ -126,7 +123,6 @@ public:
               s_ = State::State4;
               return;
             }
-            return;
           }
           default: return;
         }
@@ -154,7 +150,6 @@ public:
               on_transition(s_, s_, e);
               return;
             }
-            return;
           }
           default: return;
         }
