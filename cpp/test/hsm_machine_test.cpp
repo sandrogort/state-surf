@@ -56,6 +56,13 @@ TEST(StateSurfMachine, DrivesThroughLifecycle) {
   RecordingHooks hooks;
   statesurf::StateSurfMachine machine(hooks);
 
+  EXPECT_EQ(machine.state(), statesurf::State::StateSurfInitial);
+  EXPECT_FALSE(machine.terminated());
+  EXPECT_TRUE(hooks.entries.empty());
+  EXPECT_TRUE(hooks.actions.empty());
+
+  machine.start();
+
   const std::vector<statesurf::State> expected_initial_entries{
       statesurf::State::s,
       statesurf::State::s2,
@@ -178,4 +185,5 @@ TEST(StateSurfMachine, DrivesThroughLifecycle) {
 
   machine.dispatch(statesurf::Event::TERMINATE);
   EXPECT_TRUE(machine.terminated());
+  EXPECT_EQ(machine.state(), statesurf::State::StateSurfFinal);
 }

@@ -3,12 +3,14 @@
 namespace statesurf {
 
 enum class State {
+  StateSurfInitial,
   s,
   s1,
   s11,
   s2,
   s21,
-  s211
+  s211,
+  StateSurfFinal
 };
 
 enum class Event {
@@ -51,12 +53,20 @@ public:
 
   void reset() {
     terminated_ = false;
+    started_ = false;
+    s_ = State::StateSurfInitial;
+  }
+
+  void start() {
+    if (terminated_ || started_) return;
+    on_transition(s_, State::s211, Event{});
     impl_.action(State::s, Event{}, ActionId::setFooFalse);
     impl_.on_entry(State::s);
     impl_.on_entry(State::s2);
     impl_.on_entry(State::s21);
     impl_.on_entry(State::s211);
     s_ = State::s211;
+    started_ = true;
   }
 
   State state() const { return s_; }
@@ -64,6 +74,10 @@ public:
 
   void dispatch(Event e) {
     if (terminated_) return;
+    if (!started_) {
+      start();
+      if (!started_) return;
+    }
     on_event(s_, e);
     switch (s_) {
       case State::s: {
@@ -78,9 +92,10 @@ public:
           }
           case Event::TERMINATE: {
             {
-              on_transition(s_, s_, e);
+              on_transition(s_, State::StateSurfFinal, e);
               impl_.on_exit(State::s);
               terminated_ = true;
+              s_ = State::StateSurfFinal;
               return;
             }
             return;
@@ -167,10 +182,11 @@ public:
           }
           case Event::TERMINATE: {
             {
-              on_transition(s_, s_, e);
+              on_transition(s_, State::StateSurfFinal, e);
               impl_.on_exit(State::s1);
               impl_.on_exit(State::s);
               terminated_ = true;
+              s_ = State::StateSurfFinal;
               return;
             }
             return;
@@ -290,11 +306,12 @@ public:
           }
           case Event::TERMINATE: {
             {
-              on_transition(s_, s_, e);
+              on_transition(s_, State::StateSurfFinal, e);
               impl_.on_exit(State::s11);
               impl_.on_exit(State::s1);
               impl_.on_exit(State::s);
               terminated_ = true;
+              s_ = State::StateSurfFinal;
               return;
             }
             return;
@@ -353,10 +370,11 @@ public:
           }
           case Event::TERMINATE: {
             {
-              on_transition(s_, s_, e);
+              on_transition(s_, State::StateSurfFinal, e);
               impl_.on_exit(State::s2);
               impl_.on_exit(State::s);
               terminated_ = true;
+              s_ = State::StateSurfFinal;
               return;
             }
             return;
@@ -447,11 +465,12 @@ public:
           }
           case Event::TERMINATE: {
             {
-              on_transition(s_, s_, e);
+              on_transition(s_, State::StateSurfFinal, e);
               impl_.on_exit(State::s21);
               impl_.on_exit(State::s2);
               impl_.on_exit(State::s);
               terminated_ = true;
+              s_ = State::StateSurfFinal;
               return;
             }
             return;
@@ -569,12 +588,13 @@ public:
           }
           case Event::TERMINATE: {
             {
-              on_transition(s_, s_, e);
+              on_transition(s_, State::StateSurfFinal, e);
               impl_.on_exit(State::s211);
               impl_.on_exit(State::s21);
               impl_.on_exit(State::s2);
               impl_.on_exit(State::s);
               terminated_ = true;
+              s_ = State::StateSurfFinal;
               return;
             }
             return;
@@ -601,6 +621,7 @@ public:
 private:
   IHooks& impl_;
   State s_;
+  bool started_ = false;
   bool terminated_ = false;
 };
 
