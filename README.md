@@ -1,34 +1,37 @@
 # StateSurf
 
-StateSurf turns a PlantUML hierarchical state machine model into a single, flat, C++11 header that is readable, embedded-friendly, and easy to integrate. It is built for teams who sketch state charts, regenerate code when the model changes, and keep runtime logic deterministic and traceable.
+StateSurf turns a PlantUML hierarchical state machine model into generated code that is readable, embedded-friendly, and easy to integrate. Today the generator emits a flat C++11 header or a Rust module, so teams can sketch state charts, regenerate code when the model changes, and keep runtime logic deterministic and traceable.
 
 ## Highlights
-- Generated-only workflow: edit PlantUML, regenerate `*.hpp`, never touch emitted code by hand
-- Embedded-first runtime: header-only, C++11, no dynamic allocations, exceptions, or RTTI
+- Generated-only workflow: edit PlantUML, regenerate `*.hpp` / `*.rs`, never touch emitted code by hand
+- Embedded-first runtime: header-only C++11 or `no_std`-friendly Rust with no dynamic allocations, exceptions, or RTTI
 - Flattened execution: entry/exit chains and transition specificity resolved ahead of time
 - Deterministic IDs: guard/action identifiers are shared by name across the model, so reused logic hits the same hook entry point
+- Multi-language output: choose between the C++ template (`-l cpp`) or the Rust template (`-l rust`)
 - Optional tracing: override `statesurf::on_event` / `on_transition` for lightweight logging
 
 ## Repository Layout
-- `python/statesurf.py` — minimal CLI that parses PlantUML and emits C++ headers
-- `plantuml/` — example models (see `hsm.puml`)
-- `cpp/generated/` — sample generated output used in tests or prototypes
+- `python/statesurf.py` — minimal CLI that parses PlantUML and emits C++/Rust output
+- `plantuml/` — example models
+- `cpp/generated/` / `rust/generated/` — sample generated output used in tests or prototypes
 - `doc/requirements.md` — vision and full v1 feature/semantics reference
 
 ## Requirements
 - Python 3.8+ (stdlib only) and `jinja2`
 - PlantUML for authoring state machine diagrams (no runtime dependency)
 - A C++11 toolchain for consuming the generated header
+- A Rust 1.70+ toolchain (Cargo) if you target the Rust templates
 
 ## Quick Start
 1. **Model your machine** in PlantUML using the supported subset (deep initials, guards, entry/exit actions, internal transitions, etc.).
-2. **Validate the model** to catch syntax/semantic issues early:
+2. **Validate the model** to catch syntax issues early:
    ```bash
    python3 python/statesurf.py validate -i plantuml/hsm.puml
    ```
-3. **Generate the header** and choose the class name you want in C++:
+3. **Generate the header/module** for the language you need and choose the surface name:
    ```bash
-   python3 python/statesurf.py generate -i plantuml/hsm.puml -o cpp/generated/hsm.hpp -n MyMachine
+   python3 python/statesurf.py generate -i plantuml/hsm.puml -o cpp/generated/hsm.hpp -n MyMachine -l cpp
+   python3 python/statesurf.py generate -i plantuml/hsm.puml -o rust/generated/hsm.rs -n MyMachine -l rust
    ```
 4. **Implement hooks** by inheriting from `statesurf::IHooks`:
    ```cpp
@@ -59,9 +62,15 @@ The machine caches its current `State`, automatically executes entry/exit/action
 - Guard/action enums collapse identical names, so reuse `isDoorClosed` or `setFooTrue` freely across states
 - Final transitions (`state --> [*]`) terminate the machine; use `terminated()` to query
 
+## PlantUML Syntax Rules
+- Identifiers for states, events, guards, and actions must match `[A-Za-z_]\w*`; punctuation such as `?`, `-`, or `()` is rejected at parse time
+- `entry` / `exit` lines support the form `State : entry / ActionName`; guards on entry/exit and dangling `/` are invalid
+- Internal transitions treat `entry` and `exit` as reserved keywords—use dedicated entry/exit syntax instead
+
 For the full set of guarantees, limitations, and v1 roadmap, read `doc/requirements.md`.
 
 ## Development
-- The generator currently focuses on a single-language (C++) pipeline. Templating keeps adding other targets straightforward.
+- The generator currently ships with C++ and Rust templates; templating keeps adding additional targets straightforward.
 - Tests and demos live next to the generated headers; keep them building against regenerated output to catch regressions.
 - Contributions welcome! Open issues/PRs that expand the PlantUML subset, improve codegen readability, or tighten validation.
+- Run `script/test_all.sh` to regenerate code for both languages, build the C++ and Rust artifacts, and execute both test suites in one step.
