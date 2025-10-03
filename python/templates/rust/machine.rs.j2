@@ -1,0 +1,170 @@
+#[allow(dead_code)]
+#[allow(non_camel_case_types)]
+#[allow(clippy::upper_case_acronyms)]
+#[allow(unreachable_code)]
+#[allow(unreachable_patterns)]
+pub mod statesurf {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub enum State {
+        {{ pseudo_initial }},
+{% for state in states %}
+        {{ state }},
+{% endfor %}
+        {{ pseudo_final }},
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub enum Event {
+{% for event in events %}
+        {{ event }}{{ "," if not loop.last else "" }}
+{% endfor %}
+    }
+
+{% if default_event_variant %}
+    impl Default for Event {
+        fn default() -> Self {
+            Event::{{ default_event_variant }}
+        }
+    }
+{% else %}
+    impl Default for Event {
+        fn default() -> Self {
+            panic!("No events defined for machine");
+        }
+    }
+{% endif %}
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub enum GuardId {
+{% for guard in guard_ids %}
+        {{ guard }}{{ "," if not loop.last else "" }}
+{% endfor %}
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub enum ActionId {
+{% for action in action_ids %}
+        {{ action }}{{ "," if not loop.last else "" }}
+{% endfor %}
+    }
+
+    pub trait Hooks {
+        fn on_entry(&mut self, state: State);
+        fn on_exit(&mut self, state: State);
+        fn guard(&mut self, state: State, event: Event, guard: GuardId) -> bool;
+        fn action(&mut self, state: State, event: Event, action: ActionId);
+    }
+
+    #[inline]
+    pub fn on_event(_state: State, _event: Event) {}
+
+    #[inline]
+    pub fn on_transition(_from: State, _to: State, _event: Event) {}
+
+    pub struct StateSurfMachine<H: Hooks> {
+        hooks: H,
+        state: State,
+        started: bool,
+        terminated: bool,
+    }
+
+    impl<H: Hooks> StateSurfMachine<H> {
+        pub fn new(hooks: H) -> Self {
+            let mut machine = Self {
+                hooks,
+                state: {{ pseudo_initial_literal }},
+                started: false,
+                terminated: false,
+            };
+            machine.reset();
+            machine
+        }
+
+        pub fn reset(&mut self) {
+            self.terminated = false;
+{% if reset_lines %}
+{% for line in reset_lines %}
+            {{ line }}
+{% endfor %}
+{% else %}
+            let _ = ();
+{% endif %}
+        }
+
+        pub fn start(&mut self) {
+            if self.terminated || self.started {
+                return;
+            }
+            self.started = true;
+{% if has_start_target %}
+            {{ start_transition_line }}
+            {{ start_state_line }}
+{% for line in start_lines %}
+            {{ line }}
+{% endfor %}
+{% else %}
+{% for line in fallback_lines %}
+            {{ line }}
+{% endfor %}
+{% endif %}
+        }
+
+        pub fn state(&self) -> State {
+            self.state
+        }
+
+        pub fn terminated(&self) -> bool {
+            self.terminated
+        }
+
+        pub fn hooks(&self) -> &H {
+            &self.hooks
+        }
+
+        pub fn hooks_mut(&mut self) -> &mut H {
+            &mut self.hooks
+        }
+
+        pub fn dispatch(&mut self, event: Event) {
+            if self.terminated {
+                return;
+            }
+            if !self.started {
+                self.start();
+                if !self.started {
+                    return;
+                }
+            }
+            on_event(self.state, event);
+            match self.state {
+{% for state in state_cases %}
+                {{ state.case_label }} => {
+{% if state.events %}
+                    match event {
+{% for event in state.events %}
+                        {{ event.case_label }} => {
+{% for line in event.lines %}
+{{ line }}
+{% endfor %}
+                        }
+{% endfor %}
+                        _ => {
+                            {{ return_statement }}
+                        }
+                    }
+{% else %}
+                    {{ return_statement }}
+{% endif %}
+                }
+{% endfor %}
+                {{ pseudo_initial_literal }} => {
+                    {{ return_statement }}
+                }
+                {{ pseudo_final_literal }} => {
+                    {{ return_statement }}
+                }
+                _ => {}
+            }
+        }
+    }
+}

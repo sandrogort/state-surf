@@ -1,0 +1,18 @@
+# Build artifacts
+/build/
+/cmake-build-*/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Cargo/Rust build outputs
+/rust/target/
+
+# Test logs and coverage
+**/Testing/
+**/CTestTestfile.cmake
+
+# Misc editors
+.vscode/
+.idea/

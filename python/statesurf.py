@@ -61,6 +61,9 @@ class LanguageSpec:
     def return_statement(self) -> str:
         raise NotImplementedError
 
+    def case_epilogue(self) -> Optional[str]:
+        return None
+
 
 class CppLanguageSpec(LanguageSpec):
     def __init__(self):
@@ -127,9 +130,76 @@ class CppLanguageSpec(LanguageSpec):
     def return_statement(self) -> str:
         return "return;"
 
+    def case_epilogue(self) -> Optional[str]:
+        return "return;"
+
+
+class RustLanguageSpec(LanguageSpec):
+    def __init__(self):
+        super().__init__(
+            name="rust",
+            template="rust/machine.rs.j2",
+            pseudo_initial_state="InitialPseudoState",
+            pseudo_final_state="FinalPseudoState",
+        )
+        self._hooks_ref = "self.hooks"
+        self._state_ref = "self.state"
+        self._event_ref = "event"
+        self._started_ref = "self.started"
+        self._terminated_ref = "self.terminated"
+
+    def state_literal(self, name: str) -> str:
+        return f"State::{name}"
+
+    def event_literal(self, name: str) -> str:
+        return f"Event::{name}"
+
+    def action_literal(self, name: str) -> str:
+        return f"ActionId::{name}"
+
+    def guard_literal(self, name: str) -> str:
+        return f"GuardId::{name}"
+
+    def default_event_literal(self) -> str:
+        return "Event::default()"
+
+    def current_state_ref(self) -> str:
+        return self._state_ref
+
+    def event_param_ref(self) -> str:
+        return self._event_ref
+
+    def call_transition(self, src: str, dst: str, event: str) -> str:
+        return f"on_transition({src}, {dst}, {event});"
+
+    def call_entry(self, state: str) -> str:
+        return f"{self._hooks_ref}.on_entry({state});"
+
+    def call_exit(self, state: str) -> str:
+        return f"{self._hooks_ref}.on_exit({state});"
+
+    def call_action(self, state: str, event: str, action: str) -> str:
+        return f"{self._hooks_ref}.action({state}, {event}, {action});"
+
+    def guard_condition(self, state: str, event: str, guard: str) -> str:
+        return f"if {self._hooks_ref}.guard({state}, {event}, {guard}) "
+
+    def set_state(self, state: str) -> str:
+        return f"{self._state_ref} = {state};"
+
+    def set_started_false(self) -> str:
+        return f"{self._started_ref} = false;"
+
+    def set_terminated_true(self) -> str:
+        return f"{self._terminated_ref} = true;"
+
+    def return_statement(self) -> str:
+        return "return;"
+
 
 LANGUAGE_SPECS = {
     "cpp": CppLanguageSpec(),
+    "rust": RustLanguageSpec(),
 }
 
 class Node:
@@ -341,6 +411,7 @@ def gen_code(m, machine_name: str, language: str) -> str:
             f"Unsupported language '{language}'. Available: {', '.join(sorted(LANGUAGE_SPECS.keys()))}"
         )
     spec = LANGUAGE_SPECS[language]
+
     def sanitize_id(x: str) -> str:
         return re.sub(r'[^A-Za-z0-9_]', '_', x)
 
@@ -424,7 +495,8 @@ def gen_code(m, machine_name: str, language: str) -> str:
 
     def append_state(lst: List[str], name: str):
         if name != "__root__":
-            lst.append(name)
+            if not lst or lst[-1] != name:
+                lst.append(name)
 
     def entry_chain_nodes(from_lca_name: str, dest_leaf: str) -> List[str]:
         acc: List[str] = []
@@ -486,12 +558,42 @@ def gen_code(m, machine_name: str, language: str) -> str:
         spec.set_state(spec.state_literal(spec.pseudo_initial_state)),
     ]
 
+    default_event_variant = event_ids_map[events[0]] if events else None
+    pseudo_initial_literal = spec.state_literal(spec.pseudo_initial_state)
+    pseudo_final_literal = spec.state_literal(spec.pseudo_final_state)
+
+    start_transition_line: Optional[str] = None
+    start_state_line: Optional[str] = None
+    fallback_lines: List[str] = []
+
+    if start_target_state:
+        target_literal = spec.state_literal(start_target_state)
+        start_transition_line = spec.call_transition(
+            pseudo_initial_literal,
+            target_literal,
+            spec.default_event_literal(),
+        )
+        start_state_line = spec.set_state(target_literal)
+    else:
+        fallback_lines = [
+            spec.call_transition(
+                pseudo_initial_literal,
+                pseudo_final_literal,
+                spec.default_event_literal(),
+            ),
+            spec.call_entry(pseudo_final_literal),
+            spec.set_state(pseudo_final_literal),
+            spec.set_terminated_true(),
+        ]
+
     state_cases: List[Dict[str, object]] = []
 
     for s in states:
+        case_label = spec.state_literal(state_ids_map[s])
         evmap = by_state.get(s, {})
         event_blocks: List[Dict[str, object]] = []
         for ev, transitions in evmap.items():
+            event_label = spec.event_literal(event_ids_map[ev])
             body_lines: List[str] = []
             for t in transitions:
                 if t.internal:
@@ -545,7 +647,7 @@ def gen_code(m, machine_name: str, language: str) -> str:
                             7,
                             spec.call_transition(
                                 spec.current_state_ref(),
-                                spec.state_literal(spec.pseudo_final_state),
+                                pseudo_final_literal,
                                 spec.event_param_ref(),
                             ),
                         )
@@ -564,8 +666,8 @@ def gen_code(m, machine_name: str, language: str) -> str:
                                 ),
                             )
                         )
-                    body_lines.append(indent(7, spec.call_entry(spec.state_literal(spec.pseudo_final_state))))
-                    body_lines.append(indent(7, spec.set_state(spec.state_literal(spec.pseudo_final_state))))
+                    body_lines.append(indent(7, spec.call_entry(pseudo_final_literal)))
+                    body_lines.append(indent(7, spec.set_state(pseudo_final_literal)))
                     body_lines.append(indent(7, spec.set_terminated_true()))
                     body_lines.append(indent(7, spec.return_statement()))
                     body_lines.append(indent(6, "}"))
@@ -575,10 +677,16 @@ def gen_code(m, machine_name: str, language: str) -> str:
                 exit_nodes: List[str] = []
                 n = m.nodes[s]
                 source_node = m.nodes.get(t.src)
-                while n and (source_node is None or n.name != source_node.name):
-                    append_state(exit_nodes, n.name)
+                if not t.internal and source_node is not None and source_node.name == s:
+                    append_state(exit_nodes, s)
                     n = n.parent
+                else:
+                    while n and (source_node is None or n.name != source_node.name):
+                        append_state(exit_nodes, n.name)
+                        n = n.parent
                 dest_within_source = False
+                target_node = m.nodes.get(t.dst) if t.dst is not None else None
+                target_is_ancestor = False
                 if t.src in m.nodes:
                     dn = m.nodes[dest_leaf]
                     while dn:
@@ -586,6 +694,13 @@ def gen_code(m, machine_name: str, language: str) -> str:
                             dest_within_source = True
                             break
                         dn = dn.parent
+                if target_node is not None and source_node is not None:
+                    anc = source_node
+                    while anc and anc.name != "__root__":
+                        if anc.name == target_node.name:
+                            target_is_ancestor = True
+                            break
+                        anc = anc.parent
                 if not dest_within_source and source_node is not None and source_node.name != "__root__":
                     append_state(exit_nodes, t.src)
                     n = source_node.parent
@@ -596,15 +711,28 @@ def gen_code(m, machine_name: str, language: str) -> str:
                     while n and (lca_src_dest is None or n.name != lca_src_dest.name):
                         append_state(exit_nodes, n.name)
                         n = n.parent
+                if target_is_ancestor and target_node is not None and t.src != s:
+                    current_node = m.nodes[s]
+                    anc = current_node.parent
+                    while anc and anc.name != "__root__":
+                        if anc.name == target_node.name:
+                            break
+                        append_state(exit_nodes, anc.name)
+                        anc = anc.parent
                 exit_common = False
                 if (not t.internal) and dest_within_source and t.src == t.dst:
                     exit_common = True
                 if dest_within_source and source_node is not None:
-                    entry_anchor_name = t.src
+                    if target_is_ancestor and target_node is not None:
+                        entry_anchor_name = target_node.name
+                    else:
+                        entry_anchor_name = t.src
                 else:
                     lca_node = lca_src_dest if lca_src_dest is not None else (source_node if source_node is not None else None)
                     entry_anchor_name = lca_node.name if lca_node is not None else "__root__"
                 entry_nodes = entry_chain_nodes(entry_anchor_name, dest_leaf)
+                if exit_common and source_node is not None and source_node.name != s:
+                    append_state(exit_nodes, source_node.name)
                 cond = ""
                 if t.guard:
                     gid = guard_map[t.guard]
@@ -686,15 +814,23 @@ def gen_code(m, machine_name: str, language: str) -> str:
                 body_lines.append(indent(7, spec.set_state(spec.state_literal(state_ids_map[dest_leaf]))))
                 body_lines.append(indent(7, spec.return_statement()))
                 body_lines.append(indent(6, "}"))
-            body_lines.append(indent(6, spec.return_statement()))
-            event_blocks.append({
-                "name": event_ids_map[ev],
-                "lines": body_lines
-            })
-        state_cases.append({
-            "name": state_ids_map[s],
-            "events": event_blocks
-        })
+            epilogue = spec.case_epilogue()
+            if epilogue:
+                body_lines.append(indent(6, epilogue))
+            event_blocks.append(
+                {
+                    "enum_name": event_ids_map[ev],
+                    "case_label": event_label,
+                    "lines": body_lines,
+                }
+            )
+        state_cases.append(
+            {
+                "enum_name": state_ids_map[s],
+                "case_label": case_label,
+                "events": event_blocks,
+            }
+        )
 
     template_dir = Path(__file__).parent / "templates"
     env = Environment(loader=FileSystemLoader(str(template_dir)), trim_blocks=True, lstrip_blocks=True)
@@ -709,9 +845,19 @@ def gen_code(m, machine_name: str, language: str) -> str:
         reset_lines=reset_lines,
         state_cases=state_cases,
         start_lines=start_lines,
-        start_target_state=start_target_state,
+        has_start_target=start_target_state is not None,
+        start_transition_line=start_transition_line,
+        start_state_line=start_state_line,
+        fallback_lines=fallback_lines,
         pseudo_initial=spec.pseudo_initial_state,
         pseudo_final=spec.pseudo_final_state,
+        pseudo_initial_literal=pseudo_initial_literal,
+        pseudo_final_literal=pseudo_final_literal,
+        current_state_ref=spec.current_state_ref(),
+        event_param_ref=spec.event_param_ref(),
+        default_event_variant=default_event_variant,
+        default_event_literal=spec.default_event_literal(),
+        return_statement=spec.return_statement(),
     )
     return code
 

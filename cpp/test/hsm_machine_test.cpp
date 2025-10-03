@@ -113,7 +113,7 @@ TEST(StateSurfMachine, DrivesThroughLifecycle) {
 
   dispatch_and_expect(
       statesurf::Event::A,
-      {statesurf::State::s11},
+      {statesurf::State::s11, statesurf::State::s1},
       {statesurf::State::s1, statesurf::State::s11},
       {},
       {},
@@ -121,16 +121,16 @@ TEST(StateSurfMachine, DrivesThroughLifecycle) {
 
   dispatch_and_expect(
       statesurf::Event::D,
-      {statesurf::State::s11},
-      {statesurf::State::s11},
+      {statesurf::State::s11, statesurf::State::s1},
+      {statesurf::State::s1, statesurf::State::s11},
       {statesurf::ActionId::setFooTrue},
       {statesurf::GuardId::isFooTrue, statesurf::GuardId::isFooFalse},
       statesurf::State::s11);
 
   dispatch_and_expect(
       statesurf::Event::D,
-      {},
-      {},
+      {statesurf::State::s11},
+      {statesurf::State::s11},
       {statesurf::ActionId::setFooFalse},
       {statesurf::GuardId::isFooTrue},
       statesurf::State::s11);

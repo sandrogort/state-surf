@@ -104,6 +104,7 @@ public:
           case Event::E: {
             {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s);
               impl_.on_entry(State::s1);
               impl_.on_entry(State::s11);
               s_ = State::s11;
@@ -131,7 +132,9 @@ public:
           case Event::D: {
             if (impl_.guard(s_, e, GuardId::isFooFalse)) {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s1);
               impl_.action(s_, e, ActionId::setFooTrue);
+              impl_.on_entry(State::s1);
               impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
@@ -141,6 +144,7 @@ public:
           case Event::A: {
             {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s1);
               impl_.on_entry(State::s1);
               impl_.on_entry(State::s11);
               s_ = State::s11;
@@ -151,6 +155,7 @@ public:
           case Event::B: {
             {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s1);
               impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
@@ -225,6 +230,9 @@ public:
           case Event::H: {
             {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s11);
+              impl_.on_entry(State::s1);
+              impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
             }
@@ -233,14 +241,18 @@ public:
           case Event::D: {
             if (impl_.guard(s_, e, GuardId::isFooTrue)) {
               on_transition(s_, State::s11, e);
+              impl_.on_exit(State::s11);
               impl_.action(s_, e, ActionId::setFooFalse);
+              impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
             }
             if (impl_.guard(s_, e, GuardId::isFooFalse)) {
               on_transition(s_, State::s11, e);
               impl_.on_exit(State::s11);
+              impl_.on_exit(State::s1);
               impl_.action(s_, e, ActionId::setFooTrue);
+              impl_.on_entry(State::s1);
               impl_.on_entry(State::s11);
               s_ = State::s11;
               return;
@@ -263,6 +275,7 @@ public:
             {
               on_transition(s_, State::s11, e);
               impl_.on_exit(State::s11);
+              impl_.on_exit(State::s1);
               impl_.on_entry(State::s1);
               impl_.on_entry(State::s11);
               s_ = State::s11;
@@ -414,6 +427,7 @@ public:
           case Event::A: {
             {
               on_transition(s_, State::s211, e);
+              impl_.on_exit(State::s21);
               impl_.on_entry(State::s21);
               impl_.on_entry(State::s211);
               s_ = State::s211;
@@ -424,6 +438,7 @@ public:
           case Event::B: {
             {
               on_transition(s_, State::s211, e);
+              impl_.on_exit(State::s21);
               impl_.on_entry(State::s211);
               s_ = State::s211;
               return;
@@ -500,6 +515,8 @@ public:
           case Event::D: {
             {
               on_transition(s_, State::s211, e);
+              impl_.on_exit(State::s211);
+              impl_.on_entry(State::s211);
               s_ = State::s211;
               return;
             }
@@ -535,6 +552,7 @@ public:
             {
               on_transition(s_, State::s211, e);
               impl_.on_exit(State::s211);
+              impl_.on_exit(State::s21);
               impl_.on_entry(State::s21);
               impl_.on_entry(State::s211);
               s_ = State::s211;

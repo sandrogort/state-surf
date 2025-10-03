@@ -57,17 +57,16 @@ public:
   void start() {
     if (terminated_ || started_) return;
     started_ = true;
-{% if start_target_state %}
-    on_transition(State::{{ pseudo_initial }}, State::{{ start_target_state }}, Event{});
-    s_ = State::{{ start_target_state }};
+{% if has_start_target %}
+    {{ start_transition_line }}
+    {{ start_state_line }}
 {% for line in start_lines %}
     {{ line }}
 {% endfor %}
 {% else %}
-    on_transition(State::{{ pseudo_initial }}, State::{{ pseudo_final }}, Event{});
-    impl_.on_entry(State::{{ pseudo_final }});
-    s_ = State::{{ pseudo_final }};
-    terminated_ = true;
+{% for line in fallback_lines %}
+    {{ line }}
+{% endfor %}
 {% endif %}
   }
 
@@ -83,11 +82,11 @@ public:
     on_event(s_, e);
     switch (s_) {
 {% for state in state_cases %}
-      case State::{{ state.name }}: {
+      case {{ state.case_label }}: {
 {% if state.events %}
         switch (e) {
 {% for event in state.events %}
-          case Event::{{ event.name }}: {
+          case {{ event.case_label }}: {
 {% for line in event.lines %}
 {{ line }}
 {% endfor %}
@@ -100,10 +99,10 @@ public:
 {% endif %}
       }
 {% endfor %}
-      case State::{{ pseudo_initial }}: {
+      case {{ pseudo_initial_literal }}: {
         return;
       }
-      case State::{{ pseudo_final }}: {
+      case {{ pseudo_final_literal }}: {
         return;
       }
     }
