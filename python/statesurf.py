@@ -77,6 +77,12 @@ class LanguageSpec:
     def case_epilogue(self) -> Optional[str]:
         return None
 
+    def guard_open(self, condition: str) -> str:
+        return f"{condition}{{"
+
+    def guard_close(self) -> Optional[str]:
+        return "}"
+
 
 class CppLanguageSpec(LanguageSpec):
     def __init__(self):
@@ -229,9 +235,93 @@ class RustLanguageSpec(LanguageSpec):
         return "return;"
 
 
+class PythonLanguageSpec(LanguageSpec):
+    def __init__(self):
+        super().__init__(
+            name="python",
+            template="python/machine.py.j2",
+            pseudo_initial_state="InitialPseudoState",
+            pseudo_final_state="FinalPseudoState",
+        )
+        self._hooks_ref = "self._hooks"
+        self._state_ref = "self._state"
+        self._event_ref = "event"
+        self._started_ref = "self._started"
+        self._terminated_ref = "self._terminated"
+
+    def configure(self, namespace_base: str, type_prefix: str):
+        super().configure(namespace_base, type_prefix)
+        prefix = ''.join(part.capitalize() for part in split_camel(type_prefix).split('_') if part)
+        prefix = prefix or "StateMachine"
+        self._state_enum = f"{prefix}State"
+        self._event_enum = f"{prefix}Event"
+        self._guard_enum = f"{prefix}GuardId"
+        self._action_enum = f"{prefix}ActionId"
+        self._hooks_type = f"{prefix}Hooks"
+        self._machine_type = f"{prefix}Machine"
+
+    def state_literal(self, name: str) -> str:
+        return f"{self._state_enum}.{name}"
+
+    def event_literal(self, name: str) -> str:
+        return f"{self._event_enum}.{name}"
+
+    def action_literal(self, name: str) -> str:
+        return f"{self._action_enum}.{name}"
+
+    def guard_literal(self, name: str) -> str:
+        return f"{self._guard_enum}.{name}"
+
+    def default_event_literal(self) -> str:
+        return "self._default_event()"
+
+    def current_state_ref(self) -> str:
+        return self._state_ref
+
+    def event_param_ref(self) -> str:
+        return self._event_ref
+
+    def call_transition(self, src: str, dst: str, event: str) -> str:
+        return f"on_transition({src}, {dst}, {event})"
+
+    def call_entry(self, state: str) -> str:
+        return f"{self._hooks_ref}.on_entry({state})"
+
+    def call_exit(self, state: str) -> str:
+        return f"{self._hooks_ref}.on_exit({state})"
+
+    def call_action(self, state: str, event: str, action: str) -> str:
+        return f"{self._hooks_ref}.action({state}, {event}, {action})"
+
+    def guard_condition(self, state: str, event: str, guard: str) -> str:
+        return f"if {self._hooks_ref}.guard({state}, {event}, {guard})"
+
+    def guard_open(self, condition: str) -> str:
+        return f"{condition}:"
+
+    def guard_close(self) -> Optional[str]:
+        return None
+
+    def set_state(self, state: str) -> str:
+        return f"{self._state_ref} = {state}"
+
+    def set_started_false(self) -> str:
+        return f"{self._started_ref} = False"
+
+    def set_terminated_true(self) -> str:
+        return f"{self._terminated_ref} = True"
+
+    def return_statement(self) -> str:
+        return "return"
+
+    def case_epilogue(self) -> Optional[str]:
+        return "return"
+
+
 LANGUAGE_SPECS = {
     "cpp": CppLanguageSpec(),
     "rust": RustLanguageSpec(),
+    "python": PythonLanguageSpec(),
 }
 
 class Node:
@@ -690,7 +780,9 @@ def gen_code(m, machine_name: str, language: str, namespace_base: str, type_pref
                             spec.event_param_ref(),
                             spec.guard_literal(gid),
                         )
-                        body_lines.append(indent(6, f"{cond}{{"))
+                        guard_open = spec.guard_open(cond)
+                        if guard_open:
+                            body_lines.append(indent(6, guard_open))
                         inner_indent = 7
                     else:
                         inner_indent = 6
@@ -718,7 +810,9 @@ def gen_code(m, machine_name: str, language: str, namespace_base: str, type_pref
                         )
                     body_lines.append(indent(inner_indent, spec.return_statement()))
                     if t.guard:
-                        body_lines.append(indent(6, "}"))
+                        guard_close = spec.guard_close()
+                        if guard_close:
+                            body_lines.append(indent(6, guard_close))
                     else:
                         stop_after_transition = True
                         emit_case_epilogue = False
@@ -734,7 +828,9 @@ def gen_code(m, machine_name: str, language: str, namespace_base: str, type_pref
                             spec.guard_literal(gid),
                         )
                     if t.guard:
-                        body_lines.append(indent(6, f"{cond}{{"))
+                        guard_open = spec.guard_open(cond)
+                        if guard_open:
+                            body_lines.append(indent(6, guard_open))
                         inner_indent = 7
                     else:
                         inner_indent = 6
@@ -767,7 +863,9 @@ def gen_code(m, machine_name: str, language: str, namespace_base: str, type_pref
                     body_lines.append(indent(inner_indent, spec.set_terminated_true()))
                     body_lines.append(indent(inner_indent, spec.return_statement()))
                     if t.guard:
-                        body_lines.append(indent(6, "}"))
+                        guard_close = spec.guard_close()
+                        if guard_close:
+                            body_lines.append(indent(6, guard_close))
                     else:
                         stop_after_transition = True
                         emit_case_epilogue = False
@@ -842,7 +940,9 @@ def gen_code(m, machine_name: str, language: str, namespace_base: str, type_pref
                         spec.guard_literal(gid),
                     )
                 if t.guard:
-                    body_lines.append(indent(6, f"{cond}{{"))
+                    guard_open = spec.guard_open(cond)
+                    if guard_open:
+                        body_lines.append(indent(6, guard_open))
                     inner_indent = 7
                 else:
                     inner_indent = 6
@@ -918,7 +1018,9 @@ def gen_code(m, machine_name: str, language: str, namespace_base: str, type_pref
                 body_lines.append(indent(inner_indent, spec.set_state(spec.state_literal(state_ids_map[dest_leaf]))))
                 body_lines.append(indent(inner_indent, spec.return_statement()))
                 if t.guard:
-                    body_lines.append(indent(6, "}"))
+                    guard_close = spec.guard_close()
+                    if guard_close:
+                        body_lines.append(indent(6, guard_close))
                 else:
                     stop_after_transition = True
                     emit_case_epilogue = False
