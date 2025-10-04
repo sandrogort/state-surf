@@ -1073,6 +1073,29 @@ def gen_code(m, machine_name: str, language: str, namespace_base: str, type_pref
     )
     return code
 
+
+def generate_python_assets(
+    model: Model,
+    machine_name: str,
+    namespace_base: str,
+    type_prefix: str,
+    output_path: Path,
+) -> None:
+    code = gen_code(model, machine_name, "python", namespace_base, type_prefix)
+    output_path.write_text(code, encoding="utf-8")
+
+
+def ensure_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def render_template(template_name: str, **context) -> str:
+    template_dir = Path(__file__).parent / "templates"
+    env = Environment(loader=FileSystemLoader(str(template_dir)), trim_blocks=True, lstrip_blocks=True)
+    template = env.get_template(template_name)
+    return template.render(**context)
+
+
 def generate(
     input_path: Path,
     output_path: Path,
@@ -1086,10 +1109,58 @@ def generate(
     code = gen_code(model, effective_machine_name, language, namespace_base, type_prefix)
     output_path.write_text(code, encoding="utf-8")
 
+def simulate(
+    input_path: Path,
+    simulation_dir: Path,
+    machine_name: Optional[str] = None,
+    plantuml_cmd: str = "plantuml",
+) -> None:
+    model = parse_puml(input_path)
+    namespace_base = generate_namespace_base(input_path)
+    type_prefix = generate_type_prefix(input_path)
+    effective_machine_name = machine_name or f"{type_prefix}Machine"
+
+    ensure_dir(simulation_dir)
+
+    machine_module_path = simulation_dir / "machine.py"
+    generate_python_assets(model, effective_machine_name, namespace_base, type_prefix, machine_module_path)
+
+    original_puml_copy = simulation_dir / input_path.name
+    original_text = input_path.read_text(encoding="utf-8")
+    original_puml_copy.write_text(original_text, encoding="utf-8")
+
+    def sanitize(name: str) -> str:
+        cleaned = re.sub(r"[^A-Za-z0-9_]", "_", name)
+        if not cleaned:
+            cleaned = "_"
+        if cleaned[0].isdigit():
+            cleaned = "_" + cleaned
+        return cleaned
+
+    event_names = [sanitize(ev) for ev in sorted(model.events)]
+
+    module_alias = f"statesurf_sim_{sanitize(type_prefix).lower()}"
+
+    simulator_code = render_template(
+        "python/simulator_app.py.j2",
+        machine_module="machine",
+        machine_module_alias=module_alias,
+        machine_module_filename="machine.py",
+        type_prefix=type_prefix,
+        machine_name=effective_machine_name,
+        event_names=event_names,
+        puml_filename=input_path.name,
+        plantuml_cmd=plantuml_cmd,
+    )
+    simulator_path = simulation_dir / "simulator.py"
+    simulator_path.write_text(simulator_code, encoding="utf-8")
+
+
 def main(argv):
     import argparse
     ap = argparse.ArgumentParser(description="StateSurf minimal generator (v1 subset)")
     sub = ap.add_subparsers(dest="cmd")
+
     g = sub.add_parser("generate")
     g.add_argument("-i", "--input", required=True)
     g.add_argument("-o", "--output", required=True)
@@ -1100,12 +1171,38 @@ def main(argv):
         help="Optional machine class name (defaults to <puml_file_name>Machine)",
     )
     g.add_argument("-l", "--language", default="cpp")
+
+    s = sub.add_parser("simulate")
+    s.add_argument("-i", "--input", required=True)
+    s.add_argument("--sim-dir", required=True, help="Directory that will hold simulator assets")
+    s.add_argument(
+        "-n",
+        "--name",
+        default=None,
+        help="Optional machine class name (defaults to <puml_file_name>Machine)",
+    )
+    s.add_argument(
+        "--plantuml",
+        default="plantuml",
+        help="Path to the PlantUML CLI executable (defaults to 'plantuml')",
+    )
+
     v = sub.add_parser("validate")
     v.add_argument("-i", "--input", required=True)
+
     args = ap.parse_args(argv)
     try:
         if args.cmd == "generate":
             generate(Path(args.input), Path(args.output), args.name, args.language.lower())
+            return 0
+        elif args.cmd == "simulate":
+            simulate(
+                Path(args.input),
+                Path(args.sim_dir),
+                machine_name=args.name,
+                plantuml_cmd=args.plantuml,
+            )
+            print("Simulator assets generated.")
             return 0
         elif args.cmd == "validate":
             parse_puml(Path(args.input))

@@ -8,6 +8,7 @@ StateSurf turns a PlantUML hierarchical state machine model into generated code 
 - Flattened execution: entry/exit chains and transition specificity resolved ahead of time
 - Deterministic IDs: guard/action identifiers are shared by name across the model, so reused logic hits the same hook entry point
 - Multi-language output: choose between the C++ (`-l cpp`), Rust (`-l rust`), or Python (`-l python`) templates
+- Interactive simulator: spin up a NiceGUI front-end that lets you drive events, answer guards, and watch the diagram update live (`simulate` command)
 - Optional tracing: override `statesurf::on_event` / `on_transition` for lightweight logging
 
 ## Repository Layout
@@ -22,6 +23,7 @@ StateSurf turns a PlantUML hierarchical state machine model into generated code 
 - A C++11 toolchain for consuming the generated header
 - A Rust 1.70+ toolchain (Cargo) if you target the Rust templates
 - A Python 3.8+ runtime if you target the Python template
+- For the simulator: `nicegui` (pip installable) and the PlantUML CLI (`plantuml` on PATH)
 
 ## Quick Start
 1. **Model your machine** in PlantUML using the supported subset (deep initials, guards, entry/exit actions, internal transitions, etc.).
@@ -34,6 +36,7 @@ StateSurf turns a PlantUML hierarchical state machine model into generated code 
    python3 python/statesurf.py generate -i plantuml/hsm.puml -o cpp/generated/hsm.hpp -n MyMachine -l cpp
    python3 python/statesurf.py generate -i plantuml/hsm.puml -o rust/generated/hsm.rs -n MyMachine -l rust
    python3 python/statesurf.py generate -i plantuml/hsm.puml -o python/generated/hsm.py -n MyMachine -l python
+   python3 python/statesurf.py simulate -i plantuml/hsm.puml --sim-dir sim/hsm -n MyMachine
    ```
 4. **Implement hooks** by inheriting from `statesurf::IHooks`:
    ```cpp
@@ -56,6 +59,8 @@ StateSurf turns a PlantUML hierarchical state machine model into generated code 
    ```
 
    For Python, implement a subclass of `MyMachineHooks`, then pass an instance into `MyMachine(hooks)` and call `dispatch` with `MyMachineEvent` values.
+
+   To launch the simulator, `cd sim/hsm && python3 simulator.py`, then open the served UI. Select events from the dropdown, step through reactions, answer guard prompts, and watch the PlantUML diagram render the active state, exits, and entries.
 
 The machine caches its current `State`, automatically executes entry/exit/action hooks, and ignores events with no matching transition. Final transitions mark the machine as terminated so later dispatches become no-ops.
 
