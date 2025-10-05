@@ -65,6 +65,11 @@ StateSurf turns a PlantUML hierarchical state machine model into generated code 
 
 The machine caches its current `State`, automatically executes entry/exit/action callbacks, and ignores events with no matching transition. Final transitions mark the machine as terminated so later dispatches become no-ops.
 
+## Simulator Environment
+- Simulator dependencies are captured in `requirements-simulator.txt` (`nicegui` and friends).
+- Generating a simulator (`python3 python/statesurf.py simulate ...`) automatically creates a local `.venv` inside the output folder and installs those packages. The venv is *not* committed—rerun the command or install with `pip install -r requirements-simulator.txt` if you need a fresh environment.
+- Run the simulator with the bundled interpreter, e.g. `./sim/hsm/.venv/bin/python simulator.py` (or `Scripts\\python.exe` on Windows).
+
 ## Modeling Notes
 - Initial transitions may target deep descendants and may carry actions
 - Internal/self transitions are supported via either `state : Event` or `state -> state : Event`

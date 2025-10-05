@@ -16,3 +16,7 @@ __pycache__/
 # Misc editors
 .vscode/
 .idea/
+
+# Local Python environments
+statesurf_venv/
+simulation/

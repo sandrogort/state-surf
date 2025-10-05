@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-import sys, re
+import os
+import subprocess
+import sys, re, venv
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Set
 
@@ -1154,6 +1156,29 @@ def simulate(
     )
     simulator_path = simulation_dir / "simulator.py"
     simulator_path.write_text(simulator_code, encoding="utf-8")
+
+    sim_venv_dir = simulation_dir / ".venv"
+    marker = sim_venv_dir / ".statesurf_bootstrap"
+    if not sim_venv_dir.exists():
+        venv.create(str(sim_venv_dir), with_pip=True)
+
+    if not marker.exists():
+        if os.name == "nt":
+            python_exe = sim_venv_dir / "Scripts" / "python.exe"
+        else:
+            python_exe = sim_venv_dir / "bin" / "python3"
+            if not python_exe.exists():
+                python_exe = sim_venv_dir / "bin" / "python"
+
+        subprocess.run([str(python_exe), "-m", "pip", "install", "--upgrade", "pip"], check=True)
+
+        requirements_file = Path(__file__).resolve().parent.parent / "requirements-simulator.txt"
+        if requirements_file.exists():
+            subprocess.run([str(python_exe), "-m", "pip", "install", "-r", str(requirements_file)], check=True)
+        else:
+            subprocess.run([str(python_exe), "-m", "pip", "install", "nicegui"], check=True)
+
+        marker.write_text("ok\n", encoding="utf-8")
 
 
 def main(argv):

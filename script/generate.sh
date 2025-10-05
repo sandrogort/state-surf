@@ -9,6 +9,7 @@ PLANTUML_DIR="${ROOT_DIR}/plantuml"
 OUTPUT_DIR="${ROOT_DIR}/cpp/generated"
 RUST_OUTPUT_DIR="${ROOT_DIR}/rust/generated"
 PYTHON_OUTPUT_DIR="${ROOT_DIR}/python/generated"
+SIM_OUTPUT_DIR="${ROOT_DIR}/simulation/generated"
 
 mkdir -p "${OUTPUT_DIR}"
 mkdir -p "${RUST_OUTPUT_DIR}"
@@ -20,3 +21,5 @@ for puml in "${PLANTUML_DIR}"/*.puml; do
   python3 "${GENERATOR}" generate -i "${puml}" -o "${RUST_OUTPUT_DIR}/${name}.rs" -l rust
   python3 "${GENERATOR}" generate -i "${puml}" -o "${PYTHON_OUTPUT_DIR}/${name}.py" -l python
 done
+
+python3 "${GENERATOR}" simulate -i "${PLANTUML_DIR}/hsm.puml" --sim-dir "${SIM_OUTPUT_DIR}"
