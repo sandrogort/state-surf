@@ -38,25 +38,26 @@ StateSurf turns a PlantUML hierarchical state machine model into generated code 
    python3 python/statesurf.py generate -i plantuml/hsm.puml -o python/generated/hsm.py -n MyMachine -l python
    python3 python/statesurf.py simulate -i plantuml/hsm.puml --sim-dir sim/hsm -n MyMachine
    ```
-4. **Implement callbacks** by inheriting from `statesurf::ICallbacks`:
-   ```cpp
-   struct Impl : statesurf::ICallbacks {
-     void on_entry(statesurf::State s) override { /* GPIOs, logs, ... */ }
-     void on_exit(statesurf::State s) override { /* cleanup */ }
-     bool guard(statesurf::State s, statesurf::Event e, statesurf::GuardId g) override {
+4. **Implement callbacks** by providing a type with the expected methods:
+  ```cpp
+   struct Impl {
+     void on_entry(statesurf::State s) { /* GPIOs, logs, ... */ }
+     void on_exit(statesurf::State s) { /* cleanup */ }
+     bool guard(statesurf::State s, statesurf::Event e, statesurf::GuardId g) {
        /* `g` is the shared name (e.g., GuardId::isFooTrue) */
-       }
-     void action(statesurf::State s, statesurf::Event e, statesurf::ActionId a) override {
+       return true;
+     }
+     void action(statesurf::State s, statesurf::Event e, statesurf::ActionId a) {
        /* `a` is the shared name (e.g., ActionId::setFooFalse) */
-       }
+     }
    };
-   ```
+  ```
 5. **Run the machine**:
-   ```cpp
+  ```cpp
    Impl impl;
-   statesurf::MyMachine machine(impl);
+   statesurf::MyMachine<Impl> machine(impl);
    machine.dispatch(statesurf::Event::A);
-   ```
+  ```
 
    For Python, implement a subclass of `MyMachineCallbacks`, then pass an instance into `MyMachine(callbacks)` and call `dispatch` with `MyMachineEvent` values.
 

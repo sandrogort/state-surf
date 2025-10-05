@@ -6,17 +6,17 @@
 
 namespace {
 
-struct RecordingCallbacks final : HsmCallbacks {
+struct RecordingCallbacks {
   std::vector<HsmState> entries;
   std::vector<HsmState> exits;
   std::vector<HsmActionId> actions;
   std::vector<HsmGuardId> guard_calls;
   bool foo = true;
 
-  void on_entry(HsmState s) override { entries.push_back(s); }
-  void on_exit(HsmState s) override { exits.push_back(s); }
+  void on_entry(HsmState s) { entries.push_back(s); }
+  void on_exit(HsmState s) { exits.push_back(s); }
 
-  bool guard(HsmState, HsmEvent, HsmGuardId id) override {
+  bool guard(HsmState, HsmEvent, HsmGuardId id) {
     guard_calls.push_back(id);
     switch (id) {
       case HsmGuardId::isFooTrue:
@@ -28,7 +28,7 @@ struct RecordingCallbacks final : HsmCallbacks {
     }
   }
 
-  void action(HsmState, HsmEvent, HsmActionId id) override {
+  void action(HsmState, HsmEvent, HsmActionId id) {
     actions.push_back(id);
     switch (id) {
       case HsmActionId::setFooFalse:
@@ -54,7 +54,7 @@ struct RecordingCallbacks final : HsmCallbacks {
 
 TEST(StateSurfMachine, DrivesThroughLifecycle) {
   RecordingCallbacks callbacks;
-  HsmMachine machine(callbacks);
+  HsmMachine<RecordingCallbacks> machine(callbacks);
 
   EXPECT_EQ(machine.state(), HsmState::InitialPseudoState);
   EXPECT_FALSE(machine.terminated());

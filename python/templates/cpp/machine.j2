@@ -26,20 +26,28 @@ enum class {{ type_prefix }}ActionId {
 {% endfor %}
 };
 
-struct {{ type_prefix }}Callbacks {
-  virtual ~{{ type_prefix }}Callbacks() {}
-  virtual void on_entry({{ type_prefix }}State) = 0;
-  virtual void on_exit({{ type_prefix }}State) = 0;
-  virtual bool guard({{ type_prefix }}State, {{ type_prefix }}Event, {{ type_prefix }}GuardId) = 0;
-  virtual void action({{ type_prefix }}State, {{ type_prefix }}Event, {{ type_prefix }}ActionId) = 0;
-};
-
 inline void on_event({{ type_prefix }}State, {{ type_prefix }}Event) {}
 inline void on_transition({{ type_prefix }}State, {{ type_prefix }}State, {{ type_prefix }}Event) {}
 
+/**
+ * @brief Deterministic state machine generated from a PlantUML model.
+ *
+ * The `Callbacks` type argument must provide:
+ *   - `void on_entry({{ type_prefix }}State)` invoked on every state entry
+ *   - `void on_exit({{ type_prefix }}State)` invoked on every state exit
+ *   - `bool guard({{ type_prefix }}State, {{ type_prefix }}Event, {{ type_prefix }}GuardId)` to resolve guard conditions
+ *   - `void action({{ type_prefix }}State, {{ type_prefix }}Event, {{ type_prefix }}ActionId)` for transition side-effects
+ *
+ * Hold a callbacks instance for any required application state and pass it
+ * into the constructor. Call `start()` to trigger the initial transition (or
+ * let the first `dispatch` call do it lazily), then drive the machine with
+ * `dispatch({{ type_prefix }}Event)` values. Query `state()` and
+ * `terminated()` to observe runtime status.
+ */
+template <typename Callbacks>
 class {{ type_prefix }}Machine {
 public:
-  explicit {{ type_prefix }}Machine({{ type_prefix }}Callbacks& callbacks) : callbacks_(callbacks) { reset(); }
+  explicit {{ type_prefix }}Machine(Callbacks& callbacks) : callbacks_(callbacks) { reset(); }
 
   void reset() {
     terminated_ = false;
@@ -107,7 +115,7 @@ public:
   }
 
 private:
-  {{ type_prefix }}Callbacks& callbacks_;
+  Callbacks& callbacks_;
   {{ type_prefix }}State s_;
   bool started_ = false;
   bool terminated_ = false;

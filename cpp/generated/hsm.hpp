@@ -34,20 +34,28 @@ enum class HsmActionId {
   setFooTrue
 };
 
-struct HsmCallbacks {
-  virtual ~HsmCallbacks() {}
-  virtual void on_entry(HsmState) = 0;
-  virtual void on_exit(HsmState) = 0;
-  virtual bool guard(HsmState, HsmEvent, HsmGuardId) = 0;
-  virtual void action(HsmState, HsmEvent, HsmActionId) = 0;
-};
-
 inline void on_event(HsmState, HsmEvent) {}
 inline void on_transition(HsmState, HsmState, HsmEvent) {}
 
+/**
+ * @brief Deterministic state machine generated from a PlantUML model.
+ *
+ * The `Callbacks` type argument must provide:
+ *   - `void on_entry(HsmState)` invoked on every state entry
+ *   - `void on_exit(HsmState)` invoked on every state exit
+ *   - `bool guard(HsmState, HsmEvent, HsmGuardId)` to resolve guard conditions
+ *   - `void action(HsmState, HsmEvent, HsmActionId)` for transition side-effects
+ *
+ * Hold a callbacks instance for any required application state and pass it
+ * into the constructor. Call `start()` to trigger the initial transition (or
+ * let the first `dispatch` call do it lazily), then drive the machine with
+ * `dispatch(HsmEvent)` values. Query `state()` and
+ * `terminated()` to observe runtime status.
+ */
+template <typename Callbacks>
 class HsmMachine {
 public:
-  explicit HsmMachine(HsmCallbacks& callbacks) : callbacks_(callbacks) { reset(); }
+  explicit HsmMachine(Callbacks& callbacks) : callbacks_(callbacks) { reset(); }
 
   void reset() {
     terminated_ = false;
@@ -523,7 +531,7 @@ public:
   }
 
 private:
-  HsmCallbacks& callbacks_;
+  Callbacks& callbacks_;
   HsmState s_;
   bool started_ = false;
   bool terminated_ = false;

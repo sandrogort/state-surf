@@ -42,7 +42,7 @@ Target: embedded systems with no dependencies beyond the selected language runti
 
 ### Shared Concepts
 - Deterministic `State`, `Event`, `GuardId`, and `ActionId` enumerations keyed off PlantUML identifiers
-- Callbacks interface/trait that applications implement to provide guard/action bodies and observe entry/exit transitions
+- Callbacks type parameter that applications provide to supply guard/action bodies and observe entry/exit transitions
 - Optional tracing callbacks (`on_event`, `on_transition`) for lightweight logging/instrumentation
 - Precomputed entry/exit chains so dispatch never walks the hierarchy at runtime
 
@@ -53,17 +53,10 @@ enum class Event { … };
 enum class GuardId { … };
 enum class ActionId { … };
 
-struct ICallbacks {
-  virtual ~ICallbacks() {}
-  virtual void on_entry(State) = 0;
-  virtual void on_exit(State) = 0;
-  virtual bool guard(State, Event, GuardId) = 0;
-  virtual void action(State, Event, ActionId) = 0;
-};
-
+template <typename Callbacks>
 class StateSurfMachine {
 public:
-  explicit StateSurfMachine(ICallbacks& callbacks);
+  explicit StateSurfMachine(Callbacks& callbacks);
   void reset();
   void dispatch(Event e);
   State state() const;

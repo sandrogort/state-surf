@@ -29,20 +29,28 @@ enum class FsmActionId {
   actionB
 };
 
-struct FsmCallbacks {
-  virtual ~FsmCallbacks() {}
-  virtual void on_entry(FsmState) = 0;
-  virtual void on_exit(FsmState) = 0;
-  virtual bool guard(FsmState, FsmEvent, FsmGuardId) = 0;
-  virtual void action(FsmState, FsmEvent, FsmActionId) = 0;
-};
-
 inline void on_event(FsmState, FsmEvent) {}
 inline void on_transition(FsmState, FsmState, FsmEvent) {}
 
+/**
+ * @brief Deterministic state machine generated from a PlantUML model.
+ *
+ * The `Callbacks` type argument must provide:
+ *   - `void on_entry(FsmState)` invoked on every state entry
+ *   - `void on_exit(FsmState)` invoked on every state exit
+ *   - `bool guard(FsmState, FsmEvent, FsmGuardId)` to resolve guard conditions
+ *   - `void action(FsmState, FsmEvent, FsmActionId)` for transition side-effects
+ *
+ * Hold a callbacks instance for any required application state and pass it
+ * into the constructor. Call `start()` to trigger the initial transition (or
+ * let the first `dispatch` call do it lazily), then drive the machine with
+ * `dispatch(FsmEvent)` values. Query `state()` and
+ * `terminated()` to observe runtime status.
+ */
+template <typename Callbacks>
 class FsmMachine {
 public:
-  explicit FsmMachine(FsmCallbacks& callbacks) : callbacks_(callbacks) { reset(); }
+  explicit FsmMachine(Callbacks& callbacks) : callbacks_(callbacks) { reset(); }
 
   void reset() {
     terminated_ = false;
@@ -152,7 +160,7 @@ public:
   }
 
 private:
-  FsmCallbacks& callbacks_;
+  Callbacks& callbacks_;
   FsmState s_;
   bool started_ = false;
   bool terminated_ = false;
