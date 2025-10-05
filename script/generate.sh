@@ -22,4 +22,4 @@ for puml in "${PLANTUML_DIR}"/*.puml; do
   python3 "${GENERATOR}" generate -i "${puml}" -o "${PYTHON_OUTPUT_DIR}/${name}.py" -l python
 done
 
-python3 "${GENERATOR}" simulate -i "${PLANTUML_DIR}/hsm.puml" --sim-dir "${SIM_OUTPUT_DIR}"
+python3 "${GENERATOR}" simulate -i "${PLANTUML_DIR}/fsm.puml" --sim-dir "${SIM_OUTPUT_DIR}"

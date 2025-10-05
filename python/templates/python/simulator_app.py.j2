@@ -427,67 +427,71 @@ def update_history(history_box: ui.textarea) -> None:
     diagram.set_source(diagram_source)
 
 
-def check_guard_dialog() -> None:
-    if not ctx.guard_event.is_set():
-        return
+def update_guard_prompt() -> None:
     req = ctx.guard_request
     if req is None:
+        guard_panel.visible = False
         return
     guard_label.text = (
         f"Guard {req.guard.name} in state {req.state.name} on event {req.event.name}"
     )
-    guard_dialog.open()
+    guard_panel.visible = True
 
 
 def guard_decision(decision: bool) -> None:
     req = ctx.pop_guard_request()
     if req is None:
-        guard_dialog.close()
+        guard_panel.visible = False
         return
     req.response.put(decision)
-    guard_dialog.close()
+    guard_panel.visible = False
 
 
-with ui.row().classes("items-center"):
-    ui.label("StateSurf Simulator").classes("text-2xl font-bold")
+with ui.splitter().classes("h-full w-full") as layout_splitter:
+    with layout_splitter.before:
+        with ui.column().classes("gap-4 w-full"):
+            with ui.row().classes("items-center"):
+                ui.label("StateSurf Simulator").classes("text-2xl font-bold")
 
-error_banner = ui.label("").classes("text-negative")
-error_banner.visible = False
+            error_banner = ui.label("").classes("text-negative")
+            error_banner.visible = False
 
-with ui.row().classes("gap-2"):
-    ui.button("Start", on_click=lambda: ctx.start_machine())
-    ui.button("Reset", on_click=lambda: ctx.reset_machine())
-    event_select = ui.select(
-        options=EVENT_OPTIONS,
-        label="Event",
-    )
-    if EVENT_OPTIONS:
-        event_select.value = EVENT_OPTIONS[0]
-    else:
-        event_select.disable()
-    dispatch_button = ui.button(
-        "Dispatch",
-        on_click=lambda: ctx.dispatch(event_select.value) if event_select.value else None,
-    )
-    if not EVENT_OPTIONS:
-        dispatch_button.disable()
+            with ui.row().classes("gap-2"):
+                ui.button("Start", on_click=lambda: ctx.start_machine())
+                ui.button("Reset", on_click=lambda: ctx.reset_machine())
+                event_select = ui.select(
+                    options=EVENT_OPTIONS,
+                    label="Event",
+                )
+                if EVENT_OPTIONS:
+                    event_select.value = EVENT_OPTIONS[0]
+                else:
+                    event_select.disable()
+                dispatch_button = ui.button(
+                    "Dispatch",
+                    on_click=lambda: ctx.dispatch(event_select.value) if event_select.value else None,
+                )
+                if not EVENT_OPTIONS:
+                    dispatch_button.disable()
 
-ui.separator()
-ui.label("History (recent)")
+            ui.separator()
+            ui.label("History (recent)")
 
-history_box = ui.textarea().props("outlined readonly rows=8").classes("w-full")
+            history_box = ui.textarea().props("outlined readonly rows=10").classes("w-full")
 
-diagram = ui.image("/sim/highlight.png").style("max-width: 50%; border: 1px solid #ccc;")
+            with ui.card().classes("w-full gap-4") as guard_panel:
+                guard_label = ui.label("Guard evaluation")
+                with ui.row().classes("gap-4"):
+                    ui.button("True", on_click=lambda: guard_decision(True)).classes("bg-positive text-white")
+                    ui.button("False", on_click=lambda: guard_decision(False)).classes("bg-negative text-white")
 
-with ui.dialog() as guard_dialog:
-    with ui.column().classes("items-center gap-4"):
-        guard_label = ui.label("Guard evaluation")
-        with ui.row().classes("gap-4"):
-            ui.button("True", on_click=lambda: guard_decision(True)).classes("bg-positive text-white")
-            ui.button("False", on_click=lambda: guard_decision(False)).classes("bg-negative text-white")
+    with layout_splitter.after:
+        diagram = ui.image("/sim/highlight.png").style("width: 100%; height: 100%; object-fit: contain; border: 1px solid #ccc;")
+
+guard_panel.visible = False
 
 ui.timer(0.25, lambda: update_history(history_box))
-ui.timer(0.25, check_guard_dialog)
+ui.timer(0.25, update_guard_prompt)
 
 ctx.render_highlight()
 
