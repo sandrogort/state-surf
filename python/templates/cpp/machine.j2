@@ -26,8 +26,8 @@ enum class {{ type_prefix }}ActionId {
 {% endfor %}
 };
 
-struct {{ type_prefix }}Hooks {
-  virtual ~{{ type_prefix }}Hooks() {}
+struct {{ type_prefix }}Callbacks {
+  virtual ~{{ type_prefix }}Callbacks() {}
   virtual void on_entry({{ type_prefix }}State) = 0;
   virtual void on_exit({{ type_prefix }}State) = 0;
   virtual bool guard({{ type_prefix }}State, {{ type_prefix }}Event, {{ type_prefix }}GuardId) = 0;
@@ -39,7 +39,7 @@ inline void on_transition({{ type_prefix }}State, {{ type_prefix }}State, {{ typ
 
 class {{ type_prefix }}Machine {
 public:
-  explicit {{ type_prefix }}Machine({{ type_prefix }}Hooks& impl) : impl_(impl) { reset(); }
+  explicit {{ type_prefix }}Machine({{ type_prefix }}Callbacks& callbacks) : callbacks_(callbacks) { reset(); }
 
   void reset() {
     terminated_ = false;
@@ -107,7 +107,7 @@ public:
   }
 
 private:
-  {{ type_prefix }}Hooks& impl_;
+  {{ type_prefix }}Callbacks& callbacks_;
   {{ type_prefix }}State s_;
   bool started_ = false;
   bool terminated_ = false;

@@ -48,7 +48,7 @@ pub mod {{ namespace_base }} {
 {% endfor %}
     }
 
-    pub trait {{ type_prefix }}Hooks {
+    pub trait {{ type_prefix }}Callbacks {
         fn on_entry(&mut self, state: {{ type_prefix }}State);
         fn on_exit(&mut self, state: {{ type_prefix }}State);
         fn guard(&mut self, state: {{ type_prefix }}State, event: {{ type_prefix }}Event, guard: {{ type_prefix }}GuardId) -> bool;
@@ -61,17 +61,17 @@ pub mod {{ namespace_base }} {
     #[inline]
     pub fn on_transition(_from: {{ type_prefix }}State, _to: {{ type_prefix }}State, _event: {{ type_prefix }}Event) {}
 
-    pub struct {{ type_prefix }}Machine<H: {{ type_prefix }}Hooks> {
-        hooks: H,
+    pub struct {{ type_prefix }}Machine<H: {{ type_prefix }}Callbacks> {
+        callbacks: H,
         state: {{ type_prefix }}State,
         started: bool,
         terminated: bool,
     }
 
-    impl<H: {{ type_prefix }}Hooks> {{ type_prefix }}Machine<H> {
-        pub fn new(hooks: H) -> Self {
+    impl<H: {{ type_prefix }}Callbacks> {{ type_prefix }}Machine<H> {
+        pub fn new(callbacks: H) -> Self {
             let mut machine = Self {
-                hooks,
+                callbacks,
                 state: {{ pseudo_initial_literal }},
                 started: false,
                 terminated: false,
@@ -117,12 +117,12 @@ pub mod {{ namespace_base }} {
             self.terminated
         }
 
-        pub fn hooks(&self) -> &H {
-            &self.hooks
+        pub fn callbacks(&self) -> &H {
+            &self.callbacks
         }
 
-        pub fn hooks_mut(&mut self) -> &mut H {
-            &mut self.hooks
+        pub fn callbacks_mut(&mut self) -> &mut H {
+            &mut self.callbacks
         }
 
         pub fn dispatch(&mut self, event: {{ type_prefix }}Event) {

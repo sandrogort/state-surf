@@ -25,7 +25,7 @@ sys.modules[MODULE_NAME] = machine_module
 spec.loader.exec_module(machine_module)
 
 {{ machine_name }} = getattr(machine_module, {{ machine_name | tojson }})
-{{ type_prefix }}Hooks = getattr(machine_module, {{ (type_prefix + 'Hooks') | tojson }})
+{{ type_prefix }}Callbacks = getattr(machine_module, {{ (type_prefix + 'Callbacks') | tojson }})
 {{ type_prefix }}ActionId = getattr(machine_module, {{ (type_prefix + 'ActionId') | tojson }})
 {{ type_prefix }}Event = getattr(machine_module, {{ (type_prefix + 'Event') | tojson }})
 {{ type_prefix }}GuardId = getattr(machine_module, {{ (type_prefix + 'GuardId') | tojson }})
@@ -55,7 +55,7 @@ class GuardRequest:
 
 class SimulationContext:
     def __init__(self) -> None:
-        self.machine = {{ machine_name }}(SimulatorHooks(self))
+        self.machine = {{ machine_name }}(SimulatorCallbacks(self))
         self.lock = threading.Lock()
         self.guard_event = threading.Event()
         self.refresh_event = threading.Event()
@@ -363,7 +363,7 @@ class SimulationContext:
         self.render_highlight()
 
 
-class SimulatorHooks({{ type_prefix }}Hooks):
+class SimulatorCallbacks({{ type_prefix }}Callbacks):
     def __init__(self, ctx: SimulationContext) -> None:
         self.ctx = ctx
 

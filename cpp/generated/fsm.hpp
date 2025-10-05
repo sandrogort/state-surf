@@ -29,8 +29,8 @@ enum class FsmActionId {
   actionB
 };
 
-struct FsmHooks {
-  virtual ~FsmHooks() {}
+struct FsmCallbacks {
+  virtual ~FsmCallbacks() {}
   virtual void on_entry(FsmState) = 0;
   virtual void on_exit(FsmState) = 0;
   virtual bool guard(FsmState, FsmEvent, FsmGuardId) = 0;
@@ -42,7 +42,7 @@ inline void on_transition(FsmState, FsmState, FsmEvent) {}
 
 class FsmMachine {
 public:
-  explicit FsmMachine(FsmHooks& impl) : impl_(impl) { reset(); }
+  explicit FsmMachine(FsmCallbacks& callbacks) : callbacks_(callbacks) { reset(); }
 
   void reset() {
     terminated_ = false;
@@ -55,7 +55,7 @@ public:
     started_ = true;
     on_transition(FsmState::InitialPseudoState, FsmState::State1, FsmEvent{});
     s_ = FsmState::State1;
-    impl_.on_entry(FsmState::State1);
+    callbacks_.on_entry(FsmState::State1);
   }
 
   FsmState state() const { return s_; }
@@ -73,8 +73,8 @@ public:
         switch (e) {
           case FsmEvent::eventA: {
             on_transition(s_, FsmState::State2, e);
-            impl_.on_exit(FsmState::State1);
-            impl_.on_entry(FsmState::State2);
+            callbacks_.on_exit(FsmState::State1);
+            callbacks_.on_entry(FsmState::State2);
             s_ = FsmState::State2;
             return;
           }
@@ -92,10 +92,10 @@ public:
       case FsmState::State2: {
         switch (e) {
           case FsmEvent::eventB: {
-            if (impl_.guard(s_, e, FsmGuardId::guardA)) {
+            if (callbacks_.guard(s_, e, FsmGuardId::guardA)) {
               on_transition(s_, FsmState::State3, e);
-              impl_.on_exit(FsmState::State2);
-              impl_.on_entry(FsmState::State3);
+              callbacks_.on_exit(FsmState::State2);
+              callbacks_.on_entry(FsmState::State3);
               s_ = FsmState::State3;
               return;
             }
@@ -108,9 +108,9 @@ public:
         switch (e) {
           case FsmEvent::eventC: {
             on_transition(s_, FsmState::State4, e);
-            impl_.on_exit(FsmState::State3);
-            impl_.action(s_, e, FsmActionId::actionA);
-            impl_.on_entry(FsmState::State4);
+            callbacks_.on_exit(FsmState::State3);
+            callbacks_.action(s_, e, FsmActionId::actionA);
+            callbacks_.on_entry(FsmState::State4);
             s_ = FsmState::State4;
             return;
           }
@@ -120,11 +120,11 @@ public:
       case FsmState::State4: {
         switch (e) {
           case FsmEvent::eventD: {
-            if (impl_.guard(s_, e, FsmGuardId::guardB)) {
+            if (callbacks_.guard(s_, e, FsmGuardId::guardB)) {
               on_transition(s_, FsmState::State5, e);
-              impl_.on_exit(FsmState::State4);
-              impl_.action(s_, e, FsmActionId::actionB);
-              impl_.on_entry(FsmState::State5);
+              callbacks_.on_exit(FsmState::State4);
+              callbacks_.action(s_, e, FsmActionId::actionB);
+              callbacks_.on_entry(FsmState::State5);
               s_ = FsmState::State5;
               return;
             }
@@ -152,7 +152,7 @@ public:
   }
 
 private:
-  FsmHooks& impl_;
+  FsmCallbacks& callbacks_;
   FsmState s_;
   bool started_ = false;
   bool terminated_ = false;

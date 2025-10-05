@@ -92,7 +92,7 @@ class CppLanguageSpec(LanguageSpec):
             pseudo_initial_state="InitialPseudoState",
             pseudo_final_state="FinalPseudoState",
         )
-        self._impl_ref = "impl_"
+        self._callbacks_ref = "callbacks_"
         self._current_state = "s_"
         self._event_param = "e"
         self._started_var = "started_"
@@ -106,7 +106,7 @@ class CppLanguageSpec(LanguageSpec):
         self._event_enum = f"{prefix}Event"
         self._guard_enum = f"{prefix}GuardId"
         self._action_enum = f"{prefix}ActionId"
-        self._hooks_type = f"{prefix}Hooks"
+        self._callbacks_type = f"{prefix}Callbacks"
         self._machine_type = f"{prefix}Machine"
 
     def state_literal(self, name: str) -> str:
@@ -134,16 +134,16 @@ class CppLanguageSpec(LanguageSpec):
         return f"on_transition({src}, {dst}, {event});"
 
     def call_entry(self, state: str) -> str:
-        return f"{self._impl_ref}.on_entry({state});"
+        return f"{self._callbacks_ref}.on_entry({state});"
 
     def call_exit(self, state: str) -> str:
-        return f"{self._impl_ref}.on_exit({state});"
+        return f"{self._callbacks_ref}.on_exit({state});"
 
     def call_action(self, state: str, event: str, action: str) -> str:
-        return f"{self._impl_ref}.action({state}, {event}, {action});"
+        return f"{self._callbacks_ref}.action({state}, {event}, {action});"
 
     def guard_condition(self, state: str, event: str, guard: str) -> str:
-        return f"if ({self._impl_ref}.guard({state}, {event}, {guard})) "
+        return f"if ({self._callbacks_ref}.guard({state}, {event}, {guard})) "
 
     def set_state(self, state: str) -> str:
         return f"{self._current_state} = {state};"
@@ -169,7 +169,7 @@ class RustLanguageSpec(LanguageSpec):
             pseudo_initial_state="InitialPseudoState",
             pseudo_final_state="FinalPseudoState",
         )
-        self._hooks_ref = "self.hooks"
+        self._callbacks_ref = "self.callbacks"
         self._state_ref = "self.state"
         self._event_ref = "event"
         self._started_ref = "self.started"
@@ -183,7 +183,7 @@ class RustLanguageSpec(LanguageSpec):
         self._event_enum = f"{prefix}Event"
         self._guard_enum = f"{prefix}GuardId"
         self._action_enum = f"{prefix}ActionId"
-        self._hooks_trait = f"{prefix}Hooks"
+        self._callbacks_trait = f"{prefix}Callbacks"
         self._machine_type = f"{prefix}Machine"
 
     def state_literal(self, name: str) -> str:
@@ -211,16 +211,16 @@ class RustLanguageSpec(LanguageSpec):
         return f"on_transition({src}, {dst}, {event});"
 
     def call_entry(self, state: str) -> str:
-        return f"{self._hooks_ref}.on_entry({state});"
+        return f"{self._callbacks_ref}.on_entry({state});"
 
     def call_exit(self, state: str) -> str:
-        return f"{self._hooks_ref}.on_exit({state});"
+        return f"{self._callbacks_ref}.on_exit({state});"
 
     def call_action(self, state: str, event: str, action: str) -> str:
-        return f"{self._hooks_ref}.action({state}, {event}, {action});"
+        return f"{self._callbacks_ref}.action({state}, {event}, {action});"
 
     def guard_condition(self, state: str, event: str, guard: str) -> str:
-        return f"if {self._hooks_ref}.guard({state}, {event}, {guard}) "
+        return f"if {self._callbacks_ref}.guard({state}, {event}, {guard}) "
 
     def set_state(self, state: str) -> str:
         return f"{self._state_ref} = {state};"
@@ -243,7 +243,7 @@ class PythonLanguageSpec(LanguageSpec):
             pseudo_initial_state="InitialPseudoState",
             pseudo_final_state="FinalPseudoState",
         )
-        self._hooks_ref = "self._hooks"
+        self._callbacks_ref = "self._callbacks"
         self._state_ref = "self._state"
         self._event_ref = "event"
         self._started_ref = "self._started"
@@ -257,7 +257,7 @@ class PythonLanguageSpec(LanguageSpec):
         self._event_enum = f"{prefix}Event"
         self._guard_enum = f"{prefix}GuardId"
         self._action_enum = f"{prefix}ActionId"
-        self._hooks_type = f"{prefix}Hooks"
+        self._callbacks_type = f"{prefix}Callbacks"
         self._machine_type = f"{prefix}Machine"
 
     def state_literal(self, name: str) -> str:
@@ -285,16 +285,16 @@ class PythonLanguageSpec(LanguageSpec):
         return f"on_transition({src}, {dst}, {event})"
 
     def call_entry(self, state: str) -> str:
-        return f"{self._hooks_ref}.on_entry({state})"
+        return f"{self._callbacks_ref}.on_entry({state})"
 
     def call_exit(self, state: str) -> str:
-        return f"{self._hooks_ref}.on_exit({state})"
+        return f"{self._callbacks_ref}.on_exit({state})"
 
     def call_action(self, state: str, event: str, action: str) -> str:
-        return f"{self._hooks_ref}.action({state}, {event}, {action})"
+        return f"{self._callbacks_ref}.action({state}, {event}, {action})"
 
     def guard_condition(self, state: str, event: str, guard: str) -> str:
-        return f"if {self._hooks_ref}.guard({state}, {event}, {guard})"
+        return f"if {self._callbacks_ref}.guard({state}, {event}, {guard})"
 
     def guard_open(self, condition: str) -> str:
         return f"{condition}:"

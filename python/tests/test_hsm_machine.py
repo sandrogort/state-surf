@@ -4,13 +4,13 @@ from python.generated.hsm import (
     HsmActionId,
     HsmEvent,
     HsmGuardId,
-    HsmHooks,
+    HsmCallbacks,
     HsmMachine,
     HsmState,
 )
 
 
-class RecordingHooks(HsmHooks):
+class RecordingCallbacks(HsmCallbacks):
     def __init__(self) -> None:
         self.entries = []
         self.exits = []
@@ -48,14 +48,14 @@ class RecordingHooks(HsmHooks):
 
 class HsmMachineTest(unittest.TestCase):
     def test_drives_through_lifecycle(self) -> None:
-        hooks = RecordingHooks()
-        machine = HsmMachine(hooks)
+        callbacks = RecordingCallbacks()
+        machine = HsmMachine(callbacks)
 
         self.assertEqual(machine.state(), HsmState.InitialPseudoState)
         self.assertFalse(machine.terminated())
-        self.assertEqual(hooks.entries, [])
-        self.assertEqual(hooks.actions, [])
-        self.assertEqual(hooks.guard_calls, [])
+        self.assertEqual(callbacks.entries, [])
+        self.assertEqual(callbacks.actions, [])
+        self.assertEqual(callbacks.guard_calls, [])
 
         machine.start()
 
@@ -65,15 +65,15 @@ class HsmMachineTest(unittest.TestCase):
             HsmState.s21,
             HsmState.s211,
         ]
-        self.assertEqual(hooks.entries, expected_initial_entries)
-        self.assertEqual(hooks.exits, [])
-        self.assertEqual(hooks.actions, [HsmActionId.setFooFalse])
-        self.assertEqual(hooks.guard_calls, [])
-        self.assertFalse(hooks.foo)
+        self.assertEqual(callbacks.entries, expected_initial_entries)
+        self.assertEqual(callbacks.exits, [])
+        self.assertEqual(callbacks.actions, [HsmActionId.setFooFalse])
+        self.assertEqual(callbacks.guard_calls, [])
+        self.assertFalse(callbacks.foo)
         self.assertFalse(machine.terminated())
         self.assertEqual(machine.state(), HsmState.s211)
 
-        hooks.reset_logs()
+        callbacks.reset_logs()
 
         def dispatch_and_expect(
             event: HsmEvent,
@@ -84,13 +84,13 @@ class HsmMachineTest(unittest.TestCase):
             expected_state: HsmState,
         ) -> None:
             machine.dispatch(event)
-            self.assertEqual(hooks.exits, expected_exits)
-            self.assertEqual(hooks.entries, expected_entries)
-            self.assertEqual(hooks.actions, expected_actions)
-            self.assertEqual(hooks.guard_calls, expected_guards)
+            self.assertEqual(callbacks.exits, expected_exits)
+            self.assertEqual(callbacks.entries, expected_entries)
+            self.assertEqual(callbacks.actions, expected_actions)
+            self.assertEqual(callbacks.guard_calls, expected_guards)
             self.assertEqual(machine.state(), expected_state)
             self.assertFalse(machine.terminated())
-            hooks.reset_logs()
+            callbacks.reset_logs()
 
         dispatch_and_expect(
             HsmEvent.G,

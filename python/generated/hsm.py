@@ -38,7 +38,7 @@ class HsmActionId(Enum):
     setFooTrue = "setFooTrue"
 
 
-class HsmHooks:
+class HsmCallbacks:
     def on_entry(self, state: HsmState) -> None:
         raise NotImplementedError
 
@@ -61,8 +61,8 @@ def on_transition(src: HsmState, dst: HsmState, event: HsmEvent) -> None:
 
 
 class HsmMachine:
-    def __init__(self, hooks: HsmHooks) -> None:
-        self._hooks = hooks
+    def __init__(self, callbacks: HsmCallbacks) -> None:
+        self._callbacks = callbacks
         self._state = HsmState.InitialPseudoState
         self._started = False
         self._terminated = False
@@ -79,11 +79,11 @@ class HsmMachine:
         self._started = True
         on_transition(HsmState.InitialPseudoState, HsmState.s211, self._default_event())
         self._state = HsmState.s211
-        self._hooks.action(HsmState.s, self._default_event(), HsmActionId.setFooFalse)
-        self._hooks.on_entry(HsmState.s)
-        self._hooks.on_entry(HsmState.s2)
-        self._hooks.on_entry(HsmState.s21)
-        self._hooks.on_entry(HsmState.s211)
+        self._callbacks.action(HsmState.s, self._default_event(), HsmActionId.setFooFalse)
+        self._callbacks.on_entry(HsmState.s)
+        self._callbacks.on_entry(HsmState.s2)
+        self._callbacks.on_entry(HsmState.s21)
+        self._callbacks.on_entry(HsmState.s211)
 
     def state(self) -> HsmState:
         return self._state
@@ -101,23 +101,23 @@ class HsmMachine:
         on_event(self._state, event)
         if self._state == HsmState.s:
             if event == HsmEvent.I:
-              if self._hooks.guard(self._state, event, HsmGuardId.isFooTrue):
+              if self._callbacks.guard(self._state, event, HsmGuardId.isFooTrue):
                 on_transition(self._state, self._state, event)
-                self._hooks.action(self._state, event, HsmActionId.setFooFalse)
+                self._callbacks.action(self._state, event, HsmActionId.setFooFalse)
                 return
               return
             elif event == HsmEvent.TERMINATE:
               on_transition(self._state, HsmState.FinalPseudoState, event)
-              self._hooks.on_exit(HsmState.s)
-              self._hooks.on_entry(HsmState.FinalPseudoState)
+              self._callbacks.on_exit(HsmState.s)
+              self._callbacks.on_entry(HsmState.FinalPseudoState)
               self._state = HsmState.FinalPseudoState
               self._terminated = True
               return
             elif event == HsmEvent.E:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             else:
@@ -127,57 +127,57 @@ class HsmMachine:
               on_transition(self._state, self._state, event)
               return
             elif event == HsmEvent.D:
-              if self._hooks.guard(self._state, event, HsmGuardId.isFooFalse):
+              if self._callbacks.guard(self._state, event, HsmGuardId.isFooFalse):
                 on_transition(self._state, HsmState.s11, event)
-                self._hooks.on_exit(HsmState.s1)
-                self._hooks.action(self._state, event, HsmActionId.setFooTrue)
-                self._hooks.on_entry(HsmState.s1)
-                self._hooks.on_entry(HsmState.s11)
+                self._callbacks.on_exit(HsmState.s1)
+                self._callbacks.action(self._state, event, HsmActionId.setFooTrue)
+                self._callbacks.on_entry(HsmState.s1)
+                self._callbacks.on_entry(HsmState.s11)
                 self._state = HsmState.s11
                 return
               return
             elif event == HsmEvent.A:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.B:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.C:
               on_transition(self._state, HsmState.s211, event)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_entry(HsmState.s2)
-              self._hooks.on_entry(HsmState.s21)
-              self._hooks.on_entry(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s21)
+              self._callbacks.on_entry(HsmState.s211)
               self._state = HsmState.s211
               return
             elif event == HsmEvent.F:
               on_transition(self._state, HsmState.s211, event)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_entry(HsmState.s2)
-              self._hooks.on_entry(HsmState.s21)
-              self._hooks.on_entry(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s21)
+              self._callbacks.on_entry(HsmState.s211)
               self._state = HsmState.s211
               return
             elif event == HsmEvent.TERMINATE:
               on_transition(self._state, HsmState.FinalPseudoState, event)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_exit(HsmState.s)
-              self._hooks.on_entry(HsmState.FinalPseudoState)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_exit(HsmState.s)
+              self._callbacks.on_entry(HsmState.FinalPseudoState)
               self._state = HsmState.FinalPseudoState
               self._terminated = True
               return
             elif event == HsmEvent.E:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             else:
@@ -185,35 +185,35 @@ class HsmMachine:
         elif self._state == HsmState.s11:
             if event == HsmEvent.G:
               on_transition(self._state, HsmState.s211, event)
-              self._hooks.on_exit(HsmState.s11)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_entry(HsmState.s2)
-              self._hooks.on_entry(HsmState.s21)
-              self._hooks.on_entry(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s21)
+              self._callbacks.on_entry(HsmState.s211)
               self._state = HsmState.s211
               return
             elif event == HsmEvent.H:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s11)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s11)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.D:
-              if self._hooks.guard(self._state, event, HsmGuardId.isFooTrue):
+              if self._callbacks.guard(self._state, event, HsmGuardId.isFooTrue):
                 on_transition(self._state, HsmState.s11, event)
-                self._hooks.on_exit(HsmState.s11)
-                self._hooks.action(self._state, event, HsmActionId.setFooFalse)
-                self._hooks.on_entry(HsmState.s11)
+                self._callbacks.on_exit(HsmState.s11)
+                self._callbacks.action(self._state, event, HsmActionId.setFooFalse)
+                self._callbacks.on_entry(HsmState.s11)
                 self._state = HsmState.s11
                 return
-              if self._hooks.guard(self._state, event, HsmGuardId.isFooFalse):
+              if self._callbacks.guard(self._state, event, HsmGuardId.isFooFalse):
                 on_transition(self._state, HsmState.s11, event)
-                self._hooks.on_exit(HsmState.s11)
-                self._hooks.on_exit(HsmState.s1)
-                self._hooks.action(self._state, event, HsmActionId.setFooTrue)
-                self._hooks.on_entry(HsmState.s1)
-                self._hooks.on_entry(HsmState.s11)
+                self._callbacks.on_exit(HsmState.s11)
+                self._callbacks.on_exit(HsmState.s1)
+                self._callbacks.action(self._state, event, HsmActionId.setFooTrue)
+                self._callbacks.on_entry(HsmState.s1)
+                self._callbacks.on_entry(HsmState.s11)
                 self._state = HsmState.s11
                 return
               return
@@ -222,93 +222,93 @@ class HsmMachine:
               return
             elif event == HsmEvent.A:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s11)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.B:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s11)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s11)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.C:
               on_transition(self._state, HsmState.s211, event)
-              self._hooks.on_exit(HsmState.s11)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_entry(HsmState.s2)
-              self._hooks.on_entry(HsmState.s21)
-              self._hooks.on_entry(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s21)
+              self._callbacks.on_entry(HsmState.s211)
               self._state = HsmState.s211
               return
             elif event == HsmEvent.F:
               on_transition(self._state, HsmState.s211, event)
-              self._hooks.on_exit(HsmState.s11)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_entry(HsmState.s2)
-              self._hooks.on_entry(HsmState.s21)
-              self._hooks.on_entry(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s21)
+              self._callbacks.on_entry(HsmState.s211)
               self._state = HsmState.s211
               return
             elif event == HsmEvent.TERMINATE:
               on_transition(self._state, HsmState.FinalPseudoState, event)
-              self._hooks.on_exit(HsmState.s11)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_exit(HsmState.s)
-              self._hooks.on_entry(HsmState.FinalPseudoState)
+              self._callbacks.on_exit(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_exit(HsmState.s)
+              self._callbacks.on_entry(HsmState.FinalPseudoState)
               self._state = HsmState.FinalPseudoState
               self._terminated = True
               return
             elif event == HsmEvent.E:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s11)
-              self._hooks.on_exit(HsmState.s1)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             else:
                 return
         elif self._state == HsmState.s2:
             if event == HsmEvent.I:
-              if self._hooks.guard(self._state, event, HsmGuardId.isFooFalse):
+              if self._callbacks.guard(self._state, event, HsmGuardId.isFooFalse):
                 on_transition(self._state, self._state, event)
-                self._hooks.action(self._state, event, HsmActionId.setFooTrue)
+                self._callbacks.action(self._state, event, HsmActionId.setFooTrue)
                 return
-              if self._hooks.guard(self._state, event, HsmGuardId.isFooTrue):
+              if self._callbacks.guard(self._state, event, HsmGuardId.isFooTrue):
                 on_transition(self._state, self._state, event)
-                self._hooks.action(self._state, event, HsmActionId.setFooFalse)
+                self._callbacks.action(self._state, event, HsmActionId.setFooFalse)
                 return
               return
             elif event == HsmEvent.C:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.F:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.TERMINATE:
               on_transition(self._state, HsmState.FinalPseudoState, event)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_exit(HsmState.s)
-              self._hooks.on_entry(HsmState.FinalPseudoState)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_exit(HsmState.s)
+              self._callbacks.on_entry(HsmState.FinalPseudoState)
               self._state = HsmState.FinalPseudoState
               self._terminated = True
               return
             elif event == HsmEvent.E:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             else:
@@ -316,66 +316,66 @@ class HsmMachine:
         elif self._state == HsmState.s21:
             if event == HsmEvent.G:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.A:
               on_transition(self._state, HsmState.s211, event)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_entry(HsmState.s21)
-              self._hooks.on_entry(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_entry(HsmState.s21)
+              self._callbacks.on_entry(HsmState.s211)
               self._state = HsmState.s211
               return
             elif event == HsmEvent.B:
               on_transition(self._state, HsmState.s211, event)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_entry(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_entry(HsmState.s211)
               self._state = HsmState.s211
               return
             elif event == HsmEvent.I:
-              if self._hooks.guard(self._state, event, HsmGuardId.isFooFalse):
+              if self._callbacks.guard(self._state, event, HsmGuardId.isFooFalse):
                 on_transition(self._state, self._state, event)
-                self._hooks.action(self._state, event, HsmActionId.setFooTrue)
+                self._callbacks.action(self._state, event, HsmActionId.setFooTrue)
                 return
-              if self._hooks.guard(self._state, event, HsmGuardId.isFooTrue):
+              if self._callbacks.guard(self._state, event, HsmGuardId.isFooTrue):
                 on_transition(self._state, self._state, event)
-                self._hooks.action(self._state, event, HsmActionId.setFooFalse)
+                self._callbacks.action(self._state, event, HsmActionId.setFooFalse)
                 return
               return
             elif event == HsmEvent.C:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.F:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.TERMINATE:
               on_transition(self._state, HsmState.FinalPseudoState, event)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_exit(HsmState.s)
-              self._hooks.on_entry(HsmState.FinalPseudoState)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_exit(HsmState.s)
+              self._callbacks.on_entry(HsmState.FinalPseudoState)
               self._state = HsmState.FinalPseudoState
               self._terminated = True
               return
             elif event == HsmEvent.E:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             else:
@@ -383,87 +383,87 @@ class HsmMachine:
         elif self._state == HsmState.s211:
             if event == HsmEvent.D:
               on_transition(self._state, HsmState.s211, event)
-              self._hooks.on_exit(HsmState.s211)
-              self._hooks.on_entry(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s211)
+              self._callbacks.on_entry(HsmState.s211)
               self._state = HsmState.s211
               return
             elif event == HsmEvent.H:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s211)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.G:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s211)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.A:
               on_transition(self._state, HsmState.s211, event)
-              self._hooks.on_exit(HsmState.s211)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_entry(HsmState.s21)
-              self._hooks.on_entry(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_entry(HsmState.s21)
+              self._callbacks.on_entry(HsmState.s211)
               self._state = HsmState.s211
               return
             elif event == HsmEvent.B:
               on_transition(self._state, HsmState.s211, event)
-              self._hooks.on_exit(HsmState.s211)
-              self._hooks.on_entry(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s211)
+              self._callbacks.on_entry(HsmState.s211)
               self._state = HsmState.s211
               return
             elif event == HsmEvent.I:
-              if self._hooks.guard(self._state, event, HsmGuardId.isFooFalse):
+              if self._callbacks.guard(self._state, event, HsmGuardId.isFooFalse):
                 on_transition(self._state, self._state, event)
-                self._hooks.action(self._state, event, HsmActionId.setFooTrue)
+                self._callbacks.action(self._state, event, HsmActionId.setFooTrue)
                 return
-              if self._hooks.guard(self._state, event, HsmGuardId.isFooTrue):
+              if self._callbacks.guard(self._state, event, HsmGuardId.isFooTrue):
                 on_transition(self._state, self._state, event)
-                self._hooks.action(self._state, event, HsmActionId.setFooFalse)
+                self._callbacks.action(self._state, event, HsmActionId.setFooFalse)
                 return
               return
             elif event == HsmEvent.C:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s211)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.F:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s211)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             elif event == HsmEvent.TERMINATE:
               on_transition(self._state, HsmState.FinalPseudoState, event)
-              self._hooks.on_exit(HsmState.s211)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_exit(HsmState.s)
-              self._hooks.on_entry(HsmState.FinalPseudoState)
+              self._callbacks.on_exit(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_exit(HsmState.s)
+              self._callbacks.on_entry(HsmState.FinalPseudoState)
               self._state = HsmState.FinalPseudoState
               self._terminated = True
               return
             elif event == HsmEvent.E:
               on_transition(self._state, HsmState.s11, event)
-              self._hooks.on_exit(HsmState.s211)
-              self._hooks.on_exit(HsmState.s21)
-              self._hooks.on_exit(HsmState.s2)
-              self._hooks.on_entry(HsmState.s1)
-              self._hooks.on_entry(HsmState.s11)
+              self._callbacks.on_exit(HsmState.s211)
+              self._callbacks.on_exit(HsmState.s21)
+              self._callbacks.on_exit(HsmState.s2)
+              self._callbacks.on_entry(HsmState.s1)
+              self._callbacks.on_entry(HsmState.s11)
               self._state = HsmState.s11
               return
             else:

@@ -1,8 +1,8 @@
 use state_surf::generated::hsm::hsm::{
-    HsmActionId, HsmEvent, HsmGuardId, HsmHooks, HsmMachine, HsmState,
+    HsmActionId, HsmCallbacks, HsmEvent, HsmGuardId, HsmMachine, HsmState,
 };
 
-struct RecordingHooks {
+struct RecordingCallbacks {
     entries: Vec<HsmState>,
     exits: Vec<HsmState>,
     actions: Vec<HsmActionId>,
@@ -10,13 +10,13 @@ struct RecordingHooks {
     foo: bool,
 }
 
-impl Default for RecordingHooks {
+impl Default for RecordingCallbacks {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RecordingHooks {
+impl RecordingCallbacks {
     fn new() -> Self {
         Self {
             entries: Vec::new(),
@@ -35,7 +35,7 @@ impl RecordingHooks {
     }
 }
 
-impl HsmHooks for RecordingHooks {
+impl HsmCallbacks for RecordingCallbacks {
     fn on_entry(&mut self, state: HsmState) {
         self.entries.push(state);
     }
@@ -62,7 +62,7 @@ impl HsmHooks for RecordingHooks {
 }
 
 fn dispatch_and_expect(
-    machine: &mut HsmMachine<RecordingHooks>,
+    machine: &mut HsmMachine<RecordingCallbacks>,
     event: HsmEvent,
     expected_exits: &[HsmState],
     expected_entries: &[HsmState],
@@ -72,45 +72,45 @@ fn dispatch_and_expect(
 ) {
     machine.dispatch(event);
     {
-        let hooks = machine.hooks();
-        assert_eq!(hooks.exits.as_slice(), expected_exits);
-        assert_eq!(hooks.entries.as_slice(), expected_entries);
-        assert_eq!(hooks.actions.as_slice(), expected_actions);
-        assert_eq!(hooks.guard_calls.as_slice(), expected_guards);
+        let callbacks = machine.callbacks();
+        assert_eq!(callbacks.exits.as_slice(), expected_exits);
+        assert_eq!(callbacks.entries.as_slice(), expected_entries);
+        assert_eq!(callbacks.actions.as_slice(), expected_actions);
+        assert_eq!(callbacks.guard_calls.as_slice(), expected_guards);
     }
     assert_eq!(machine.state(), expected_state);
     assert!(!machine.terminated());
-    machine.hooks_mut().reset_logs();
+    machine.callbacks_mut().reset_logs();
 }
 
 #[test]
 fn drives_through_lifecycle() {
-    let hooks = RecordingHooks::new();
-    let mut machine = HsmMachine::new(hooks);
+    let callbacks = RecordingCallbacks::new();
+    let mut machine = HsmMachine::new(callbacks);
 
     {
-        let hooks_view = machine.hooks();
+        let callbacks_view = machine.callbacks();
         assert_eq!(machine.state(), HsmState::InitialPseudoState);
         assert!(!machine.terminated());
-        assert!(hooks_view.entries.is_empty());
-        assert!(hooks_view.actions.is_empty());
-        assert!(hooks_view.guard_calls.is_empty());
+        assert!(callbacks_view.entries.is_empty());
+        assert!(callbacks_view.actions.is_empty());
+        assert!(callbacks_view.guard_calls.is_empty());
     }
 
     machine.start();
     {
-        let hooks_view = machine.hooks();
+        let callbacks_view = machine.callbacks();
         let expected_initial_entries = vec![HsmState::s, HsmState::s2, HsmState::s21, HsmState::s211];
-        assert_eq!(hooks_view.entries, expected_initial_entries);
-        assert!(hooks_view.exits.is_empty());
+        assert_eq!(callbacks_view.entries, expected_initial_entries);
+        assert!(callbacks_view.exits.is_empty());
         let expected_initial_actions = vec![HsmActionId::setFooFalse];
-        assert_eq!(hooks_view.actions, expected_initial_actions);
-        assert!(hooks_view.guard_calls.is_empty());
-        assert!(!hooks_view.foo);
+        assert_eq!(callbacks_view.actions, expected_initial_actions);
+        assert!(callbacks_view.guard_calls.is_empty());
+        assert!(!callbacks_view.foo);
     }
     assert!(!machine.terminated());
     assert_eq!(machine.state(), HsmState::s211);
-    machine.hooks_mut().reset_logs();
+    machine.callbacks_mut().reset_logs();
 
     dispatch_and_expect(
         &mut machine,
@@ -226,8 +226,8 @@ fn drives_through_lifecycle() {
     assert!(machine.terminated());
     assert_eq!(machine.state(), HsmState::FinalPseudoState);
     {
-        let hooks_view = machine.hooks();
-        assert_eq!(hooks_view.exits, vec![HsmState::s211, HsmState::s21, HsmState::s2, HsmState::s]);
-        assert_eq!(hooks_view.entries, vec![HsmState::FinalPseudoState]);
+        let callbacks_view = machine.callbacks();
+        assert_eq!(callbacks_view.exits, vec![HsmState::s211, HsmState::s21, HsmState::s2, HsmState::s]);
+        assert_eq!(callbacks_view.entries, vec![HsmState::FinalPseudoState]);
     }
 }

@@ -34,8 +34,8 @@ enum class HsmActionId {
   setFooTrue
 };
 
-struct HsmHooks {
-  virtual ~HsmHooks() {}
+struct HsmCallbacks {
+  virtual ~HsmCallbacks() {}
   virtual void on_entry(HsmState) = 0;
   virtual void on_exit(HsmState) = 0;
   virtual bool guard(HsmState, HsmEvent, HsmGuardId) = 0;
@@ -47,7 +47,7 @@ inline void on_transition(HsmState, HsmState, HsmEvent) {}
 
 class HsmMachine {
 public:
-  explicit HsmMachine(HsmHooks& impl) : impl_(impl) { reset(); }
+  explicit HsmMachine(HsmCallbacks& callbacks) : callbacks_(callbacks) { reset(); }
 
   void reset() {
     terminated_ = false;
@@ -60,11 +60,11 @@ public:
     started_ = true;
     on_transition(HsmState::InitialPseudoState, HsmState::s211, HsmEvent{});
     s_ = HsmState::s211;
-    impl_.action(HsmState::s, HsmEvent{}, HsmActionId::setFooFalse);
-    impl_.on_entry(HsmState::s);
-    impl_.on_entry(HsmState::s2);
-    impl_.on_entry(HsmState::s21);
-    impl_.on_entry(HsmState::s211);
+    callbacks_.action(HsmState::s, HsmEvent{}, HsmActionId::setFooFalse);
+    callbacks_.on_entry(HsmState::s);
+    callbacks_.on_entry(HsmState::s2);
+    callbacks_.on_entry(HsmState::s21);
+    callbacks_.on_entry(HsmState::s211);
   }
 
   HsmState state() const { return s_; }
@@ -81,26 +81,26 @@ public:
       case HsmState::s: {
         switch (e) {
           case HsmEvent::I: {
-            if (impl_.guard(s_, e, HsmGuardId::isFooTrue)) {
+            if (callbacks_.guard(s_, e, HsmGuardId::isFooTrue)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, HsmActionId::setFooFalse);
+              callbacks_.action(s_, e, HsmActionId::setFooFalse);
               return;
             }
             return;
           }
           case HsmEvent::TERMINATE: {
             on_transition(s_, HsmState::FinalPseudoState, e);
-            impl_.on_exit(HsmState::s);
-            impl_.on_entry(HsmState::FinalPseudoState);
+            callbacks_.on_exit(HsmState::s);
+            callbacks_.on_entry(HsmState::FinalPseudoState);
             s_ = HsmState::FinalPseudoState;
             terminated_ = true;
             return;
           }
           case HsmEvent::E: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
@@ -114,12 +114,12 @@ public:
             return;
           }
           case HsmEvent::D: {
-            if (impl_.guard(s_, e, HsmGuardId::isFooFalse)) {
+            if (callbacks_.guard(s_, e, HsmGuardId::isFooFalse)) {
               on_transition(s_, HsmState::s11, e);
-              impl_.on_exit(HsmState::s1);
-              impl_.action(s_, e, HsmActionId::setFooTrue);
-              impl_.on_entry(HsmState::s1);
-              impl_.on_entry(HsmState::s11);
+              callbacks_.on_exit(HsmState::s1);
+              callbacks_.action(s_, e, HsmActionId::setFooTrue);
+              callbacks_.on_entry(HsmState::s1);
+              callbacks_.on_entry(HsmState::s11);
               s_ = HsmState::s11;
               return;
             }
@@ -127,51 +127,51 @@ public:
           }
           case HsmEvent::A: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::B: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::C: {
             on_transition(s_, HsmState::s211, e);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_entry(HsmState::s2);
-            impl_.on_entry(HsmState::s21);
-            impl_.on_entry(HsmState::s211);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_entry(HsmState::s2);
+            callbacks_.on_entry(HsmState::s21);
+            callbacks_.on_entry(HsmState::s211);
             s_ = HsmState::s211;
             return;
           }
           case HsmEvent::F: {
             on_transition(s_, HsmState::s211, e);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_entry(HsmState::s2);
-            impl_.on_entry(HsmState::s21);
-            impl_.on_entry(HsmState::s211);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_entry(HsmState::s2);
+            callbacks_.on_entry(HsmState::s21);
+            callbacks_.on_entry(HsmState::s211);
             s_ = HsmState::s211;
             return;
           }
           case HsmEvent::TERMINATE: {
             on_transition(s_, HsmState::FinalPseudoState, e);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_exit(HsmState::s);
-            impl_.on_entry(HsmState::FinalPseudoState);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_exit(HsmState::s);
+            callbacks_.on_entry(HsmState::FinalPseudoState);
             s_ = HsmState::FinalPseudoState;
             terminated_ = true;
             return;
           }
           case HsmEvent::E: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
@@ -182,38 +182,38 @@ public:
         switch (e) {
           case HsmEvent::G: {
             on_transition(s_, HsmState::s211, e);
-            impl_.on_exit(HsmState::s11);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_entry(HsmState::s2);
-            impl_.on_entry(HsmState::s21);
-            impl_.on_entry(HsmState::s211);
+            callbacks_.on_exit(HsmState::s11);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_entry(HsmState::s2);
+            callbacks_.on_entry(HsmState::s21);
+            callbacks_.on_entry(HsmState::s211);
             s_ = HsmState::s211;
             return;
           }
           case HsmEvent::H: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s11);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s11);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::D: {
-            if (impl_.guard(s_, e, HsmGuardId::isFooTrue)) {
+            if (callbacks_.guard(s_, e, HsmGuardId::isFooTrue)) {
               on_transition(s_, HsmState::s11, e);
-              impl_.on_exit(HsmState::s11);
-              impl_.action(s_, e, HsmActionId::setFooFalse);
-              impl_.on_entry(HsmState::s11);
+              callbacks_.on_exit(HsmState::s11);
+              callbacks_.action(s_, e, HsmActionId::setFooFalse);
+              callbacks_.on_entry(HsmState::s11);
               s_ = HsmState::s11;
               return;
             }
-            if (impl_.guard(s_, e, HsmGuardId::isFooFalse)) {
+            if (callbacks_.guard(s_, e, HsmGuardId::isFooFalse)) {
               on_transition(s_, HsmState::s11, e);
-              impl_.on_exit(HsmState::s11);
-              impl_.on_exit(HsmState::s1);
-              impl_.action(s_, e, HsmActionId::setFooTrue);
-              impl_.on_entry(HsmState::s1);
-              impl_.on_entry(HsmState::s11);
+              callbacks_.on_exit(HsmState::s11);
+              callbacks_.on_exit(HsmState::s1);
+              callbacks_.action(s_, e, HsmActionId::setFooTrue);
+              callbacks_.on_entry(HsmState::s1);
+              callbacks_.on_entry(HsmState::s11);
               s_ = HsmState::s11;
               return;
             }
@@ -225,56 +225,56 @@ public:
           }
           case HsmEvent::A: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s11);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s11);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::B: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s11);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s11);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::C: {
             on_transition(s_, HsmState::s211, e);
-            impl_.on_exit(HsmState::s11);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_entry(HsmState::s2);
-            impl_.on_entry(HsmState::s21);
-            impl_.on_entry(HsmState::s211);
+            callbacks_.on_exit(HsmState::s11);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_entry(HsmState::s2);
+            callbacks_.on_entry(HsmState::s21);
+            callbacks_.on_entry(HsmState::s211);
             s_ = HsmState::s211;
             return;
           }
           case HsmEvent::F: {
             on_transition(s_, HsmState::s211, e);
-            impl_.on_exit(HsmState::s11);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_entry(HsmState::s2);
-            impl_.on_entry(HsmState::s21);
-            impl_.on_entry(HsmState::s211);
+            callbacks_.on_exit(HsmState::s11);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_entry(HsmState::s2);
+            callbacks_.on_entry(HsmState::s21);
+            callbacks_.on_entry(HsmState::s211);
             s_ = HsmState::s211;
             return;
           }
           case HsmEvent::TERMINATE: {
             on_transition(s_, HsmState::FinalPseudoState, e);
-            impl_.on_exit(HsmState::s11);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_exit(HsmState::s);
-            impl_.on_entry(HsmState::FinalPseudoState);
+            callbacks_.on_exit(HsmState::s11);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_exit(HsmState::s);
+            callbacks_.on_entry(HsmState::FinalPseudoState);
             s_ = HsmState::FinalPseudoState;
             terminated_ = true;
             return;
           }
           case HsmEvent::E: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s11);
-            impl_.on_exit(HsmState::s1);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s11);
+            callbacks_.on_exit(HsmState::s1);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
@@ -284,48 +284,48 @@ public:
       case HsmState::s2: {
         switch (e) {
           case HsmEvent::I: {
-            if (impl_.guard(s_, e, HsmGuardId::isFooFalse)) {
+            if (callbacks_.guard(s_, e, HsmGuardId::isFooFalse)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, HsmActionId::setFooTrue);
+              callbacks_.action(s_, e, HsmActionId::setFooTrue);
               return;
             }
-            if (impl_.guard(s_, e, HsmGuardId::isFooTrue)) {
+            if (callbacks_.guard(s_, e, HsmGuardId::isFooTrue)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, HsmActionId::setFooFalse);
+              callbacks_.action(s_, e, HsmActionId::setFooFalse);
               return;
             }
             return;
           }
           case HsmEvent::C: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::F: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::TERMINATE: {
             on_transition(s_, HsmState::FinalPseudoState, e);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_exit(HsmState::s);
-            impl_.on_entry(HsmState::FinalPseudoState);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_exit(HsmState::s);
+            callbacks_.on_entry(HsmState::FinalPseudoState);
             s_ = HsmState::FinalPseudoState;
             terminated_ = true;
             return;
           }
           case HsmEvent::E: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
@@ -336,75 +336,75 @@ public:
         switch (e) {
           case HsmEvent::G: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::A: {
             on_transition(s_, HsmState::s211, e);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_entry(HsmState::s21);
-            impl_.on_entry(HsmState::s211);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_entry(HsmState::s21);
+            callbacks_.on_entry(HsmState::s211);
             s_ = HsmState::s211;
             return;
           }
           case HsmEvent::B: {
             on_transition(s_, HsmState::s211, e);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_entry(HsmState::s211);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_entry(HsmState::s211);
             s_ = HsmState::s211;
             return;
           }
           case HsmEvent::I: {
-            if (impl_.guard(s_, e, HsmGuardId::isFooFalse)) {
+            if (callbacks_.guard(s_, e, HsmGuardId::isFooFalse)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, HsmActionId::setFooTrue);
+              callbacks_.action(s_, e, HsmActionId::setFooTrue);
               return;
             }
-            if (impl_.guard(s_, e, HsmGuardId::isFooTrue)) {
+            if (callbacks_.guard(s_, e, HsmGuardId::isFooTrue)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, HsmActionId::setFooFalse);
+              callbacks_.action(s_, e, HsmActionId::setFooFalse);
               return;
             }
             return;
           }
           case HsmEvent::C: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::F: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::TERMINATE: {
             on_transition(s_, HsmState::FinalPseudoState, e);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_exit(HsmState::s);
-            impl_.on_entry(HsmState::FinalPseudoState);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_exit(HsmState::s);
+            callbacks_.on_entry(HsmState::FinalPseudoState);
             s_ = HsmState::FinalPseudoState;
             terminated_ = true;
             return;
           }
           case HsmEvent::E: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
@@ -415,98 +415,98 @@ public:
         switch (e) {
           case HsmEvent::D: {
             on_transition(s_, HsmState::s211, e);
-            impl_.on_exit(HsmState::s211);
-            impl_.on_entry(HsmState::s211);
+            callbacks_.on_exit(HsmState::s211);
+            callbacks_.on_entry(HsmState::s211);
             s_ = HsmState::s211;
             return;
           }
           case HsmEvent::H: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s211);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s211);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::G: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s211);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s211);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::A: {
             on_transition(s_, HsmState::s211, e);
-            impl_.on_exit(HsmState::s211);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_entry(HsmState::s21);
-            impl_.on_entry(HsmState::s211);
+            callbacks_.on_exit(HsmState::s211);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_entry(HsmState::s21);
+            callbacks_.on_entry(HsmState::s211);
             s_ = HsmState::s211;
             return;
           }
           case HsmEvent::B: {
             on_transition(s_, HsmState::s211, e);
-            impl_.on_exit(HsmState::s211);
-            impl_.on_entry(HsmState::s211);
+            callbacks_.on_exit(HsmState::s211);
+            callbacks_.on_entry(HsmState::s211);
             s_ = HsmState::s211;
             return;
           }
           case HsmEvent::I: {
-            if (impl_.guard(s_, e, HsmGuardId::isFooFalse)) {
+            if (callbacks_.guard(s_, e, HsmGuardId::isFooFalse)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, HsmActionId::setFooTrue);
+              callbacks_.action(s_, e, HsmActionId::setFooTrue);
               return;
             }
-            if (impl_.guard(s_, e, HsmGuardId::isFooTrue)) {
+            if (callbacks_.guard(s_, e, HsmGuardId::isFooTrue)) {
               on_transition(s_, s_, e);
-              impl_.action(s_, e, HsmActionId::setFooFalse);
+              callbacks_.action(s_, e, HsmActionId::setFooFalse);
               return;
             }
             return;
           }
           case HsmEvent::C: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s211);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s211);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::F: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s211);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s211);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
           case HsmEvent::TERMINATE: {
             on_transition(s_, HsmState::FinalPseudoState, e);
-            impl_.on_exit(HsmState::s211);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_exit(HsmState::s);
-            impl_.on_entry(HsmState::FinalPseudoState);
+            callbacks_.on_exit(HsmState::s211);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_exit(HsmState::s);
+            callbacks_.on_entry(HsmState::FinalPseudoState);
             s_ = HsmState::FinalPseudoState;
             terminated_ = true;
             return;
           }
           case HsmEvent::E: {
             on_transition(s_, HsmState::s11, e);
-            impl_.on_exit(HsmState::s211);
-            impl_.on_exit(HsmState::s21);
-            impl_.on_exit(HsmState::s2);
-            impl_.on_entry(HsmState::s1);
-            impl_.on_entry(HsmState::s11);
+            callbacks_.on_exit(HsmState::s211);
+            callbacks_.on_exit(HsmState::s21);
+            callbacks_.on_exit(HsmState::s2);
+            callbacks_.on_entry(HsmState::s1);
+            callbacks_.on_entry(HsmState::s11);
             s_ = HsmState::s11;
             return;
           }
@@ -523,7 +523,7 @@ public:
   }
 
 private:
-  HsmHooks& impl_;
+  HsmCallbacks& callbacks_;
   HsmState s_;
   bool started_ = false;
   bool terminated_ = false;

@@ -11,7 +11,7 @@ Target: embedded systems with no dependencies beyond the selected language runti
 - Flat runtime: no dynamic hierarchy traversal; entry/exit chains are precomputed at generation  
 - Embedded-friendly: generated code avoids dynamic allocation, exceptions, and RTTI (C++), and remains `no_std`-friendly for Rust  
 - Deterministic: same model → same code  
-- Traceable: optional hooks for debugging  
+- Traceable: optional callbacks for debugging  
 
 ## PlantUML Subset (v1)
 - Simple states, composite states, initial/final  
@@ -42,7 +42,7 @@ Target: embedded systems with no dependencies beyond the selected language runti
 
 ### Shared Concepts
 - Deterministic `State`, `Event`, `GuardId`, and `ActionId` enumerations keyed off PlantUML identifiers
-- Hooks interface/trait that applications implement to provide guard/action bodies and observe entry/exit transitions
+- Callbacks interface/trait that applications implement to provide guard/action bodies and observe entry/exit transitions
 - Optional tracing callbacks (`on_event`, `on_transition`) for lightweight logging/instrumentation
 - Precomputed entry/exit chains so dispatch never walks the hierarchy at runtime
 
@@ -53,8 +53,8 @@ enum class Event { … };
 enum class GuardId { … };
 enum class ActionId { … };
 
-struct IHooks {
-  virtual ~IHooks() {}
+struct ICallbacks {
+  virtual ~ICallbacks() {}
   virtual void on_entry(State) = 0;
   virtual void on_exit(State) = 0;
   virtual bool guard(State, Event, GuardId) = 0;
@@ -63,7 +63,7 @@ struct IHooks {
 
 class StateSurfMachine {
 public:
-  explicit StateSurfMachine(IHooks& impl);
+  explicit StateSurfMachine(ICallbacks& callbacks);
   void reset();
   void dispatch(Event e);
   State state() const;
@@ -76,9 +76,9 @@ public:
 
 ### Rust Output
 - Mirrors the same enums (`State`, `Event`, `GuardId`, `ActionId`)
-- Emits a `Hooks` trait with `on_entry`, `on_exit`, `guard`, and `action`
+- Emits a `Callbacks` trait with `on_entry`, `on_exit`, `guard`, and `action`
 - `Machine` struct stores state, exposes `new`, `reset`, `dispatch`, `state`, `started`, and `terminated`
-- Tracing hooks (`on_event`, `on_transition`) are provided as trait default methods
+- Tracing callbacks (`on_event`, `on_transition`) are provided as trait default methods
 - Designed to be `no_std` friendly: no heap allocation and only `core` dependencies
 
 ## CLI

@@ -30,7 +30,7 @@ class {{ type_prefix }}ActionId(Enum):
 {% endfor %}
 
 
-class {{ type_prefix }}Hooks:
+class {{ type_prefix }}Callbacks:
     def on_entry(self, state: {{ type_prefix }}State) -> None:
         raise NotImplementedError
 
@@ -53,8 +53,8 @@ def on_transition(src: {{ type_prefix }}State, dst: {{ type_prefix }}State, even
 
 
 class {{ type_prefix }}Machine:
-    def __init__(self, hooks: {{ type_prefix }}Hooks) -> None:
-        self._hooks = hooks
+    def __init__(self, callbacks: {{ type_prefix }}Callbacks) -> None:
+        self._callbacks = callbacks
         self._state = {{ pseudo_initial_literal }}
         self._started = False
         self._terminated = False

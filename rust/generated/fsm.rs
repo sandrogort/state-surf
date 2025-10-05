@@ -43,7 +43,7 @@ pub mod fsm {
         actionB
     }
 
-    pub trait FsmHooks {
+    pub trait FsmCallbacks {
         fn on_entry(&mut self, state: FsmState);
         fn on_exit(&mut self, state: FsmState);
         fn guard(&mut self, state: FsmState, event: FsmEvent, guard: FsmGuardId) -> bool;
@@ -56,17 +56,17 @@ pub mod fsm {
     #[inline]
     pub fn on_transition(_from: FsmState, _to: FsmState, _event: FsmEvent) {}
 
-    pub struct FsmMachine<H: FsmHooks> {
-        hooks: H,
+    pub struct FsmMachine<H: FsmCallbacks> {
+        callbacks: H,
         state: FsmState,
         started: bool,
         terminated: bool,
     }
 
-    impl<H: FsmHooks> FsmMachine<H> {
-        pub fn new(hooks: H) -> Self {
+    impl<H: FsmCallbacks> FsmMachine<H> {
+        pub fn new(callbacks: H) -> Self {
             let mut machine = Self {
-                hooks,
+                callbacks,
                 state: FsmState::InitialPseudoState,
                 started: false,
                 terminated: false,
@@ -88,7 +88,7 @@ pub mod fsm {
             self.started = true;
             on_transition(FsmState::InitialPseudoState, FsmState::State1, FsmEvent::default());
             self.state = FsmState::State1;
-            self.hooks.on_entry(FsmState::State1);
+            self.callbacks.on_entry(FsmState::State1);
         }
 
         pub fn state(&self) -> FsmState {
@@ -99,12 +99,12 @@ pub mod fsm {
             self.terminated
         }
 
-        pub fn hooks(&self) -> &H {
-            &self.hooks
+        pub fn callbacks(&self) -> &H {
+            &self.callbacks
         }
 
-        pub fn hooks_mut(&mut self) -> &mut H {
-            &mut self.hooks
+        pub fn callbacks_mut(&mut self) -> &mut H {
+            &mut self.callbacks
         }
 
         pub fn dispatch(&mut self, event: FsmEvent) {
@@ -123,8 +123,8 @@ pub mod fsm {
                     match event {
                         FsmEvent::eventA => {
             on_transition(self.state, FsmState::State2, event);
-            self.hooks.on_exit(FsmState::State1);
-            self.hooks.on_entry(FsmState::State2);
+            self.callbacks.on_exit(FsmState::State1);
+            self.callbacks.on_entry(FsmState::State2);
             self.state = FsmState::State2;
             return;
                         }
@@ -144,10 +144,10 @@ pub mod fsm {
                 FsmState::State2 => {
                     match event {
                         FsmEvent::eventB => {
-            if self.hooks.guard(self.state, event, FsmGuardId::guardA) {
+            if self.callbacks.guard(self.state, event, FsmGuardId::guardA) {
               on_transition(self.state, FsmState::State3, event);
-              self.hooks.on_exit(FsmState::State2);
-              self.hooks.on_entry(FsmState::State3);
+              self.callbacks.on_exit(FsmState::State2);
+              self.callbacks.on_entry(FsmState::State3);
               self.state = FsmState::State3;
               return;
             }
@@ -161,9 +161,9 @@ pub mod fsm {
                     match event {
                         FsmEvent::eventC => {
             on_transition(self.state, FsmState::State4, event);
-            self.hooks.on_exit(FsmState::State3);
-            self.hooks.action(self.state, event, FsmActionId::actionA);
-            self.hooks.on_entry(FsmState::State4);
+            self.callbacks.on_exit(FsmState::State3);
+            self.callbacks.action(self.state, event, FsmActionId::actionA);
+            self.callbacks.on_entry(FsmState::State4);
             self.state = FsmState::State4;
             return;
                         }
@@ -175,11 +175,11 @@ pub mod fsm {
                 FsmState::State4 => {
                     match event {
                         FsmEvent::eventD => {
-            if self.hooks.guard(self.state, event, FsmGuardId::guardB) {
+            if self.callbacks.guard(self.state, event, FsmGuardId::guardB) {
               on_transition(self.state, FsmState::State5, event);
-              self.hooks.on_exit(FsmState::State4);
-              self.hooks.action(self.state, event, FsmActionId::actionB);
-              self.hooks.on_entry(FsmState::State5);
+              self.callbacks.on_exit(FsmState::State4);
+              self.callbacks.action(self.state, event, FsmActionId::actionB);
+              self.callbacks.on_entry(FsmState::State5);
               self.state = FsmState::State5;
               return;
             }

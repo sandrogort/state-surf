@@ -38,9 +38,9 @@ StateSurf turns a PlantUML hierarchical state machine model into generated code 
    python3 python/statesurf.py generate -i plantuml/hsm.puml -o python/generated/hsm.py -n MyMachine -l python
    python3 python/statesurf.py simulate -i plantuml/hsm.puml --sim-dir sim/hsm -n MyMachine
    ```
-4. **Implement hooks** by inheriting from `statesurf::IHooks`:
+4. **Implement callbacks** by inheriting from `statesurf::ICallbacks`:
    ```cpp
-   struct Impl : statesurf::IHooks {
+   struct Impl : statesurf::ICallbacks {
      void on_entry(statesurf::State s) override { /* GPIOs, logs, ... */ }
      void on_exit(statesurf::State s) override { /* cleanup */ }
      bool guard(statesurf::State s, statesurf::Event e, statesurf::GuardId g) override {
@@ -58,16 +58,16 @@ StateSurf turns a PlantUML hierarchical state machine model into generated code 
    machine.dispatch(statesurf::Event::A);
    ```
 
-   For Python, implement a subclass of `MyMachineHooks`, then pass an instance into `MyMachine(hooks)` and call `dispatch` with `MyMachineEvent` values.
+   For Python, implement a subclass of `MyMachineCallbacks`, then pass an instance into `MyMachine(callbacks)` and call `dispatch` with `MyMachineEvent` values.
 
    To launch the simulator, `cd sim/hsm && python3 simulator.py`, then open the served UI. Select events from the dropdown, step through reactions, answer guard prompts, and watch the PlantUML diagram render the active state, exits, and entries.
 
-The machine caches its current `State`, automatically executes entry/exit/action hooks, and ignores events with no matching transition. Final transitions mark the machine as terminated so later dispatches become no-ops.
+The machine caches its current `State`, automatically executes entry/exit/action callbacks, and ignores events with no matching transition. Final transitions mark the machine as terminated so later dispatches become no-ops.
 
 ## Modeling Notes
 - Initial transitions may target deep descendants and may carry actions
 - Internal/self transitions are supported via either `state : Event` or `state -> state : Event`
-- Empty entry/exit/action bodies are allowed and will still call into hooks without an `ActionId`
+- Empty entry/exit/action bodies are allowed and will still call into callbacks without an `ActionId`
 - Guard/action enums collapse identical names, so reuse `isDoorClosed` or `setFooTrue` freely across states
 - Final transitions (`state --> [*]`) terminate the machine; use `terminated()` to query
 

@@ -6,7 +6,7 @@
 
 namespace {
 
-struct RecordingHooks final : HsmHooks {
+struct RecordingCallbacks final : HsmCallbacks {
   std::vector<HsmState> entries;
   std::vector<HsmState> exits;
   std::vector<HsmActionId> actions;
@@ -53,13 +53,13 @@ struct RecordingHooks final : HsmHooks {
 }  // namespace
 
 TEST(StateSurfMachine, DrivesThroughLifecycle) {
-  RecordingHooks hooks;
-  HsmMachine machine(hooks);
+  RecordingCallbacks callbacks;
+  HsmMachine machine(callbacks);
 
   EXPECT_EQ(machine.state(), HsmState::InitialPseudoState);
   EXPECT_FALSE(machine.terminated());
-  EXPECT_TRUE(hooks.entries.empty());
-  EXPECT_TRUE(hooks.actions.empty());
+  EXPECT_TRUE(callbacks.entries.empty());
+  EXPECT_TRUE(callbacks.actions.empty());
 
   machine.start();
 
@@ -68,16 +68,16 @@ TEST(StateSurfMachine, DrivesThroughLifecycle) {
       HsmState::s2,
       HsmState::s21,
       HsmState::s211};
-  EXPECT_EQ(hooks.entries, expected_initial_entries);
-  EXPECT_TRUE(hooks.exits.empty());
+  EXPECT_EQ(callbacks.entries, expected_initial_entries);
+  EXPECT_TRUE(callbacks.exits.empty());
   const std::vector<HsmActionId> expected_initial_actions{
       HsmActionId::setFooFalse};
-  EXPECT_EQ(hooks.actions, expected_initial_actions);
-  EXPECT_FALSE(hooks.foo);
+  EXPECT_EQ(callbacks.actions, expected_initial_actions);
+  EXPECT_FALSE(callbacks.foo);
   EXPECT_FALSE(machine.terminated());
   EXPECT_EQ(machine.state(), HsmState::s211);
 
-  hooks.reset_logs();
+  callbacks.reset_logs();
 
   auto dispatch_and_expect = [&](HsmEvent event,
                                  std::vector<HsmState> expected_exits,
@@ -86,13 +86,13 @@ TEST(StateSurfMachine, DrivesThroughLifecycle) {
                                  std::vector<HsmGuardId> expected_guards,
                                  HsmState expected_state) {
     machine.dispatch(event);
-    EXPECT_EQ(hooks.exits, expected_exits);
-    EXPECT_EQ(hooks.entries, expected_entries);
-    EXPECT_EQ(hooks.actions, expected_actions);
-    EXPECT_EQ(hooks.guard_calls, expected_guards);
+    EXPECT_EQ(callbacks.exits, expected_exits);
+    EXPECT_EQ(callbacks.entries, expected_entries);
+    EXPECT_EQ(callbacks.actions, expected_actions);
+    EXPECT_EQ(callbacks.guard_calls, expected_guards);
     EXPECT_EQ(machine.state(), expected_state);
     EXPECT_FALSE(machine.terminated());
-    hooks.reset_logs();
+    callbacks.reset_logs();
   };
 
   dispatch_and_expect(

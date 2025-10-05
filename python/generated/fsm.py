@@ -33,7 +33,7 @@ class FsmActionId(Enum):
     actionB = "actionB"
 
 
-class FsmHooks:
+class FsmCallbacks:
     def on_entry(self, state: FsmState) -> None:
         raise NotImplementedError
 
@@ -56,8 +56,8 @@ def on_transition(src: FsmState, dst: FsmState, event: FsmEvent) -> None:
 
 
 class FsmMachine:
-    def __init__(self, hooks: FsmHooks) -> None:
-        self._hooks = hooks
+    def __init__(self, callbacks: FsmCallbacks) -> None:
+        self._callbacks = callbacks
         self._state = FsmState.InitialPseudoState
         self._started = False
         self._terminated = False
@@ -74,7 +74,7 @@ class FsmMachine:
         self._started = True
         on_transition(FsmState.InitialPseudoState, FsmState.State1, self._default_event())
         self._state = FsmState.State1
-        self._hooks.on_entry(FsmState.State1)
+        self._callbacks.on_entry(FsmState.State1)
 
     def state(self) -> FsmState:
         return self._state
@@ -93,8 +93,8 @@ class FsmMachine:
         if self._state == FsmState.State1:
             if event == FsmEvent.eventA:
               on_transition(self._state, FsmState.State2, event)
-              self._hooks.on_exit(FsmState.State1)
-              self._hooks.on_entry(FsmState.State2)
+              self._callbacks.on_exit(FsmState.State1)
+              self._callbacks.on_entry(FsmState.State2)
               self._state = FsmState.State2
               return
             elif event == FsmEvent.init:
@@ -107,10 +107,10 @@ class FsmMachine:
                 return
         elif self._state == FsmState.State2:
             if event == FsmEvent.eventB:
-              if self._hooks.guard(self._state, event, FsmGuardId.guardA):
+              if self._callbacks.guard(self._state, event, FsmGuardId.guardA):
                 on_transition(self._state, FsmState.State3, event)
-                self._hooks.on_exit(FsmState.State2)
-                self._hooks.on_entry(FsmState.State3)
+                self._callbacks.on_exit(FsmState.State2)
+                self._callbacks.on_entry(FsmState.State3)
                 self._state = FsmState.State3
                 return
               return
@@ -119,20 +119,20 @@ class FsmMachine:
         elif self._state == FsmState.State3:
             if event == FsmEvent.eventC:
               on_transition(self._state, FsmState.State4, event)
-              self._hooks.on_exit(FsmState.State3)
-              self._hooks.action(self._state, event, FsmActionId.actionA)
-              self._hooks.on_entry(FsmState.State4)
+              self._callbacks.on_exit(FsmState.State3)
+              self._callbacks.action(self._state, event, FsmActionId.actionA)
+              self._callbacks.on_entry(FsmState.State4)
               self._state = FsmState.State4
               return
             else:
                 return
         elif self._state == FsmState.State4:
             if event == FsmEvent.eventD:
-              if self._hooks.guard(self._state, event, FsmGuardId.guardB):
+              if self._callbacks.guard(self._state, event, FsmGuardId.guardB):
                 on_transition(self._state, FsmState.State5, event)
-                self._hooks.on_exit(FsmState.State4)
-                self._hooks.action(self._state, event, FsmActionId.actionB)
-                self._hooks.on_entry(FsmState.State5)
+                self._callbacks.on_exit(FsmState.State4)
+                self._callbacks.action(self._state, event, FsmActionId.actionB)
+                self._callbacks.on_entry(FsmState.State5)
                 self._state = FsmState.State5
                 return
               return
