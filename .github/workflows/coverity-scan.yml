@@ -10,9 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      COVERITY_PROJECT_NAME: StateSurf
+      COVERITY_PROJECT_NAME: state-surf
       COVERITY_RESULTS: coverity-results.tgz
-      BUILD_DIR: build
       STATIC_ANALYSIS_DIR: build_static_analysis
     steps:
       - name: Checkout repository
@@ -57,13 +56,13 @@ jobs:
 
       - name: Clean previous builds
         run: |
-          rm -rf "${BUILD_DIR}" "${STATIC_ANALYSIS_DIR}" cov-int "${COVERITY_RESULTS}"
+          rm -rf "${STATIC_ANALYSIS_DIR}" cov-int "${COVERITY_RESULTS}"
 
       - name: Capture build with cov-build
         env:
           COVERITY_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
         run: |
-          cov-build --dir cov-int ./script/build_cpp.sh
+          cov-build --dir cov-int ./script/build_static_analysis.sh
 
       - name: Package Coverity intermediate directory
         run: |
