@@ -1,0 +1,82 @@
+name: Coverity Scan
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1" # Weekly on Mondays at 03:00 UTC
+
+jobs:
+  coverity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      COVERITY_PROJECT_NAME: StateSurf
+      COVERITY_RESULTS: coverity-results.tgz
+      BUILD_DIR: build
+      STATIC_ANALYSIS_DIR: build_static_analysis
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            ninja-build \
+            python3 \
+            python3-pip
+
+      - name: Set up Coverity tools
+        env:
+          COVERITY_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+          COVERITY_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
+        run: |
+          if [[ -z "${COVERITY_TOKEN}" || -z "${COVERITY_EMAIL}" ]]; then
+            echo "Coverity token and email secrets must be configured." >&2
+            exit 1
+          fi
+
+          TOOL_ARCHIVE="${RUNNER_TEMP}/coverity.tgz"
+          TOOL_DIR="${RUNNER_TEMP}/cov-analysis"
+
+          curl -L --fail \
+            "https://scan.coverity.com/download/linux64?token=${COVERITY_TOKEN}&project=${COVERITY_PROJECT_NAME}" \
+            --output "${TOOL_ARCHIVE}"
+
+          mkdir -p "${TOOL_DIR}"
+          tar -C "${TOOL_DIR}" -xzf "${TOOL_ARCHIVE}" --strip-components=1
+
+          echo "${TOOL_DIR}/bin" >> "${GITHUB_PATH}"
+
+      - name: Configure Python environment
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+
+      - name: Clean previous builds
+        run: |
+          rm -rf "${BUILD_DIR}" "${STATIC_ANALYSIS_DIR}" cov-int "${COVERITY_RESULTS}"
+
+      - name: Capture build with cov-build
+        env:
+          COVERITY_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+        run: |
+          cov-build --dir cov-int ./script/build_cpp.sh
+
+      - name: Package Coverity intermediate directory
+        run: |
+          tar -czf "${COVERITY_RESULTS}" cov-int
+
+      - name: Upload to Coverity Scan
+        env:
+          COVERITY_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+          COVERITY_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
+        run: |
+          curl --fail --form token="${COVERITY_TOKEN}" \
+               --form email="${COVERITY_EMAIL}" \
+               --form file=@"${COVERITY_RESULTS}" \
+               --form version="${GITHUB_SHA}" \
+               --form description="GitHub Actions build ${GITHUB_RUN_NUMBER}" \
+               "https://scan.coverity.com/builds?project=${COVERITY_PROJECT_NAME}"
