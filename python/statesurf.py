@@ -95,10 +95,11 @@ class CppLanguageSpec(LanguageSpec):
             pseudo_final_state="FinalPseudoState",
         )
         self._callbacks_ref = "callbacks_"
-        self._current_state = "s_"
-        self._event_param = "e"
+        self._current_state = "current_state_"
+        self._event_param = "event"
         self._started_var = "started_"
         self._terminated_var = "terminated_"
+        self._transition_type = "StateMachineTransition"
 
     def configure(self, namespace_base: str, type_prefix: str):
         super().configure(namespace_base, type_prefix)
@@ -110,6 +111,7 @@ class CppLanguageSpec(LanguageSpec):
         self._action_enum = f"{prefix}ActionId"
         self._callbacks_type = f"{prefix}Callbacks"
         self._machine_type = f"{prefix}Machine"
+        self._transition_type = f"{prefix}Transition"
 
     def state_literal(self, name: str) -> str:
         return f"{self._state_enum}::{name}"
@@ -133,19 +135,19 @@ class CppLanguageSpec(LanguageSpec):
         return self._event_param
 
     def call_transition(self, src: str, dst: str, event: str) -> str:
-        return f"on_transition({src}, {dst}, {event});"
+        return f"on_transition({self._transition_type}{{{src}, {dst}}}, {event});"
 
     def call_entry(self, state: str) -> str:
-        return f"{self._callbacks_ref}.on_entry({state});"
+        return f"{self._callbacks_ref}->on_entry({state});"
 
     def call_exit(self, state: str) -> str:
-        return f"{self._callbacks_ref}.on_exit({state});"
+        return f"{self._callbacks_ref}->on_exit({state});"
 
     def call_action(self, state: str, event: str, action: str) -> str:
-        return f"{self._callbacks_ref}.action({state}, {event}, {action});"
+        return f"{self._callbacks_ref}->action({state}, {event}, {action});"
 
     def guard_condition(self, state: str, event: str, guard: str) -> str:
-        return f"if ({self._callbacks_ref}.guard({state}, {event}, {guard})) "
+        return f"if ({self._callbacks_ref}->guard({state}, {event}, {guard})) "
 
     def set_state(self, state: str) -> str:
         return f"{self._current_state} = {state};"
@@ -527,6 +529,16 @@ def compute_state_depth(m: Model, name: str) -> int:
     while n.parent and n.parent.name!="__root__":
         d+=1; n=n.parent
     return d
+
+
+def select_enum_underlying_type(count: int) -> str:
+    if count <= 0x100:
+        return "std::uint8_t"
+    if count <= 0x10000:
+        return "std::uint16_t"
+    if count <= 0x100000000:
+        return "std::uint32_t"
+    return "std::uint64_t"
 
 def build_transitions_by_state(m: Model):
     by_src = {}
@@ -1036,11 +1048,25 @@ def gen_code(m, machine_name: str, language: str, namespace_base: str, type_pref
                     "lines": body_lines,
                 }
             )
+        cpp_event_blocks: List[Dict[str, object]] = []
+        for block in event_blocks:
+            merged = {
+                "enum_name": block["enum_name"],
+                "case_labels": [block["case_label"]],
+                "lines": block["lines"],
+            }
+            if cpp_event_blocks and cpp_event_blocks[-1]["lines"] == block["lines"]:
+                cpp_event_blocks[-1]["case_labels"].append(block["case_label"])
+            else:
+                cpp_event_blocks.append(merged)
+        handler_name = state_ids_map[s]
         state_cases.append(
             {
                 "enum_name": state_ids_map[s],
                 "case_label": case_label,
+                "handler_name": handler_name,
                 "events": event_blocks,
+                "cpp_events": cpp_event_blocks,
             }
         )
 
@@ -1048,14 +1074,25 @@ def gen_code(m, machine_name: str, language: str, namespace_base: str, type_pref
     env = Environment(loader=FileSystemLoader(str(template_dir)), trim_blocks=True, lstrip_blocks=True)
     template = env.get_template(spec.template)
 
+    rendered_states = [state_ids_map[s] for s in states] or ["__None"]
+    rendered_events = [event_ids_map[e] for e in events] or ["__None"]
+    rendered_guard_ids = guard_ids if guard_ids else ["__None"]
+    rendered_action_ids = action_ids if action_ids else ["__None"]
+
+    state_enum_values = ["InitialPseudoState"] + rendered_states + ["FinalPseudoState"]
+    state_enum_type = select_enum_underlying_type(len(state_enum_values))
+    event_enum_type = select_enum_underlying_type(len(rendered_events))
+    guard_enum_type = select_enum_underlying_type(len(rendered_guard_ids))
+    action_enum_type = select_enum_underlying_type(len(rendered_action_ids))
+
     code = template.render(
         machine_name=machine_name,
         namespace_base=namespace_base,
         type_prefix=type_prefix,
-        states=[state_ids_map[s] for s in states] or ["__None"],
-        events=[event_ids_map[e] for e in events] or ["__None"],
-        guard_ids=guard_ids if guard_ids else ["__None"],
-        action_ids=action_ids if action_ids else ["__None"],
+        states=rendered_states,
+        events=rendered_events,
+        guard_ids=rendered_guard_ids,
+        action_ids=rendered_action_ids,
         reset_lines=reset_lines,
         state_cases=state_cases,
         start_lines=start_lines,
@@ -1072,6 +1109,10 @@ def gen_code(m, machine_name: str, language: str, namespace_base: str, type_pref
         default_event_variant=default_event_variant,
         default_event_literal=spec.default_event_literal(),
         return_statement=spec.return_statement(),
+        state_enum_type=state_enum_type,
+        event_enum_type=event_enum_type,
+        guard_enum_type=guard_enum_type,
+        action_enum_type=action_enum_type,
     )
     return code
 

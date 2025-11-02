@@ -6,10 +6,19 @@ namespace static_analysis {
 namespace {
 
 struct DummyCallbacks {
-  void on_entry(HsmState) {}
-  void on_exit(HsmState) {}
-  bool guard(HsmState, HsmEvent, HsmGuardId) { return true; }
-  void action(HsmState, HsmEvent, HsmActionId) {}
+  static void on_entry(HsmState state) { (void)state; }
+  static void on_exit(HsmState state) { (void)state; }
+  static bool guard(HsmState state, HsmEvent event, HsmGuardId guard_id) {
+    (void)state;
+    (void)event;
+    (void)guard_id;
+    return true;
+  }
+  static void action(HsmState state, HsmEvent event, HsmActionId action_id) {
+    (void)state;
+    (void)event;
+    (void)action_id;
+  }
 };
 
 }  // namespace
