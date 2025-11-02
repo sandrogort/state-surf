@@ -89,3 +89,4 @@ For the full set of guarantees, limitations, and v1 roadmap, read `doc/requireme
 - Tests and demos live next to the generated headers; keep them building against regenerated output to catch regressions.
 - Contributions welcome! Open issues/PRs that expand the PlantUML subset, improve codegen readability, or tighten validation.
 - Run `script/test_all.sh` to regenerate code for both languages, build the C++ and Rust artifacts, and execute both test suites in one step.
+- Static analysis runs automatically when `clang-tidy` is available. Configure with the root `.clang-tidy` file, disable via `-DSTATE_SURF_ENABLE_CLANG_TIDY=OFF`, or add extra arguments with `-DSTATE_SURF_CLANG_TIDY_OPTIONS="--checks=foo"`.
