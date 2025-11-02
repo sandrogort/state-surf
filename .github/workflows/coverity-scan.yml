@@ -11,6 +11,7 @@ jobs:
     timeout-minutes: 120
     env:
       COVERITY_PROJECT_NAME: state-surf
+      COVERITY_PROJECT_ID: "32588"
       COVERITY_RESULTS: coverity-results.tgz
       STATIC_ANALYSIS_DIR: build_static_analysis
     steps:
@@ -25,7 +26,8 @@ jobs:
             cmake \
             ninja-build \
             python3 \
-            python3-pip
+            python3-pip \
+            jq
 
       - name: Set up Coverity tools
         env:
@@ -73,9 +75,35 @@ jobs:
           COVERITY_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
           COVERITY_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
         run: |
-          curl --fail --form token="${COVERITY_TOKEN}" \
-               --form email="${COVERITY_EMAIL}" \
-               --form file=@"${COVERITY_RESULTS}" \
-               --form version="${GITHUB_SHA}" \
-               --form description="GitHub Actions build ${GITHUB_RUN_NUMBER}" \
-               "https://scan.coverity.com/builds?project=${COVERITY_PROJECT_NAME}"
+          if [[ -z "${COVERITY_TOKEN}" || -z "${COVERITY_EMAIL}" ]]; then
+            echo "Coverity token and email secrets must be configured." >&2
+            exit 1
+          fi
+
+          INIT_RESPONSE="$(
+            curl --fail -X POST \
+              -d "version=${GITHUB_SHA}" \
+              -d "description=GitHub Actions build ${GITHUB_RUN_NUMBER}" \
+              -d "email=${COVERITY_EMAIL}" \
+              -d "token=${COVERITY_TOKEN}" \
+              -d "file_name=${COVERITY_RESULTS}" \
+              "https://scan.coverity.com/projects/${COVERITY_PROJECT_ID}/builds/init"
+          )"
+
+          upload_url="$(printf '%s' "${INIT_RESPONSE}" | jq -r '.url')"
+          build_id="$(printf '%s' "${INIT_RESPONSE}" | jq -r '.build_id')"
+
+          if [[ -z "${upload_url}" || -z "${build_id}" || "${upload_url}" == "null" || "${build_id}" == "null" ]]; then
+            echo "Failed to obtain Coverity upload URL/build ID." >&2
+            echo "Response: ${INIT_RESPONSE}" >&2
+            exit 1
+          fi
+
+          curl --fail -X PUT \
+            --header 'Content-Type: application/octet-stream' \
+            --upload-file "${COVERITY_RESULTS}" \
+            "${upload_url}"
+
+          curl --fail -X PUT \
+            -d "token=${COVERITY_TOKEN}" \
+            "https://scan.coverity.com/projects/${COVERITY_PROJECT_ID}/builds/${build_id}/enqueue"
