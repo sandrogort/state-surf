@@ -1,6 +1,6 @@
 # StateSurf
 
-StateSurf turns a PlantUML hierarchical state machine model into generated code that is readable, embedded-friendly, and easy to integrate. Today the generator emits a flat C++11 header, a Rust module, or a Python class, so teams can sketch state charts, regenerate code when the model changes, and keep runtime logic deterministic and traceable.
+StateSurf turns a PlantUML hierarchical state machine model into generated code that is readable, embedded-friendly, and easy to integrate. Today the generator emits a flat C++11 header, a Rust module, or a Python class, so anyone can sketch state charts, regenerate code when the model changes, and keep runtime logic deterministic and traceable.
 
 ## Highlights
 - Generated-only workflow: edit PlantUML, regenerate `*.hpp` / `*.rs`, never touch emitted code by hand
